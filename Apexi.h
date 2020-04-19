@@ -20,7 +20,8 @@ enum ENUM {
     OldMapIndex=0x68,
     OldSensorData=0x6A,
     OldBasicData=0x66,
-    OldSensorStrings=0x69
+    OldSensorStrings=0x69,
+    FuelMapColumn0=0xB0,
 };
 }
 
@@ -42,6 +43,33 @@ private:
 #define FC_INFO_MUL		{1, 0.0001, 1, 1, 1.0/256, 1.0/256, 1, 1, 1, 212.0/256, 0.4, 0.4, 1, 1, 1, 0.1, 1, 0.1, 0.02, 1, 1.0/256, 1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.0/255, 5.0/255, 5.0/255, 5.0/255, 0.01, 0.001, 0.019, 40, 0.05, 0.004 , 256, -0.00390625, 1.0/128,100}
 #define FC_INFO_ADD		{0,-1.0332, 0, 0, 0, 0, -25, -25, -80, 0, 0, 0, -80, -80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -128}
     void run();
+
+    struct fc_fuel_map_column_t{
+
+        quint16 requesttype; // id and number of bytes
+        quint16 row0; // each row is a two byte short float
+        quint16 row1;
+        quint16 row2;
+        quint16 row3;
+        quint16 row4;
+        quint16 row5;
+        quint16 row6;
+        quint16 row7;
+        quint16 row8;
+        quint16 row9;
+        quint16 row10;
+        quint16 row11;
+        quint16 row12;
+        quint16 row13;
+        quint16 row14;
+        quint16 row15;
+        quint16 row16;
+        quint16 row17;
+        quint16 row18;
+        quint16 row19;
+        quint8 checksum;
+        fc_fuel_map_column_t parse(const QByteArray &);
+    };
     
     
     double packageADV[33];

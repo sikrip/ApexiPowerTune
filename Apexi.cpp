@@ -36,11 +36,12 @@ int requestIndex = 0; // ID for requested data type Power FC
 const int FIRST_INIT_REQUEST_IDX = 0;
 const int SENSOR_STR_REQUEST_IDX = 1;
 const int SECOND_INIT_REQUEST_IDX = 2;
-const int ADV_DATA_REQUEST_IDX = 3;
-const int MAP_IDX_REQUEST_IDX = 4;
-const int SENSOR_DATA_REQUEST_IDX = 5;
-const int BASIC_DATA_REQUEST_IDX = 6;
-const int AUX_REQUEST_IDX = 7;
+const int FUEL_MAP_REQUEST_IDX = 3;
+const int ADV_DATA_REQUEST_IDX = 4;
+const int MAP_IDX_REQUEST_IDX = 5;
+const int SENSOR_DATA_REQUEST_IDX = 6;
+const int BASIC_DATA_REQUEST_IDX = 7;
+const int AUX_REQUEST_IDX = 8;
 
 int expectedbytes;
 int Bytes;
@@ -68,6 +69,9 @@ static QString mapFD3S[] ={"InjDuty", "IGL","IGT","Rpm","Speed","Boost","Knock",
                         "STP", "CAT", "ELD", "HWL", "FPD", "FPR", "APR", "PAC", "CCN", "TCN", "PRC" ,"MAP_N","MAP_P",
                         "Basic_Injduty", "Basic_IGL", "Basic_IGT", "Basic_RPM", "Basic_KPH", "Basic_Boost", "Basic_Knock", "Basic_Watert", "Basic_Airt", "Basic_BattV",};
 */
+// The fuel map currenlty in the PFC
+double currentFuelMap[20/* rows */][20/* cols */];
+
 Apexi::Apexi(QObject *parent)
     : QObject(parent)
     , m_dashboard(Q_NULLPTR)
@@ -244,10 +248,10 @@ void Apexi::apexiECU(const QByteArray &buffer)
 
         // Decide the next request to be sent to PFC
         if(requestIndex < AUX_REQUEST_IDX) {
-            // Once go through 0..7 (init, sensor strings, init, adv data, map idx, sensor data, basic data, aux)
+            // Once go through all requests (init, sensor strings, init, fuel map, adv data, map idx, sensor data, basic data, aux)
             requestIndex++;
         } else {
-            // then from 7 cycle through 3..7 (adv data, map idx, sensor data, basic data, aux)
+            // then cycle through live data requests ADV_DATA_REQUEST_IDX..AUX_REQUEST_IDX (adv data, map idx, sensor data, basic data, aux)
             requestIndex = ADV_DATA_REQUEST_IDX;
         }
 
@@ -310,12 +314,14 @@ void Apexi::readData(QByteArray rawmessagedata)
                QTimer::singleShot(2000, this, SLOT(retryconnect()));
             }
             break;
-            
-            /*
+        case ID::FuelMapColumn0:
+            Apexi::decodeFuelMap(0, rawmessagedata);
+            break;
+        /*
         case ID::Version:
             Apexi::decodeVersion(rawmessagedata);
             break;
-       */
+        */
         default:
             break;
         }
@@ -372,7 +378,12 @@ void Apexi::sendRequest(int requestIndex) {
             Apexi::writeRequestPFC(QByteArray::fromHex("F3020A"));
             expectedbytes = 11;
             break;
-            // Live Data
+        case FUEL_MAP_REQUEST_IDX:
+            // Request fuel map (column 0)
+            Apexi::writeRequestPFC(QByteArray::fromHex("B0024D"));
+            expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+            break;
+        // Live Data
         case ADV_DATA_REQUEST_IDX:
             //Apexi::getAdvData();
             Apexi::writeRequestPFC(QByteArray::fromHex("F0020D"));
@@ -414,8 +425,12 @@ void Apexi::sendRequest(int requestIndex) {
             Apexi::writeRequestPFC(QByteArray::fromHex("690294"));
             expectedbytes = 83;
             break;
-            
-            // Live Data
+        case FUEL_MAP_REQUEST_IDX:
+            // Request fuel map (column 0)
+            Apexi::writeRequestPFC(QByteArray::fromHex("B0024D"));
+            expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+            break;
+        // Live Data
         case SECOND_INIT_REQUEST_IDX:
             //Apexi::getAdvData();
             Apexi::writeRequestPFC(QByteArray::fromHex("F0020D"));
@@ -464,7 +479,42 @@ void Apexi::Auxcalc (const QString &unitaux1,const qreal &an1V0,const qreal &an2
     Apexi::calculatorAux(aux1min,aux2max,aux3min,aux4max,Auxunit1,Auxunit2);
 }
 
+/**
+ * Decodes and stores the fuel map. This is done column by column.
+ */
+void Apexi::decodeFuelMap(int columnIdx, QByteArray rawmessagedata) {
 
+    fc_fuel_map_column_t* fuelMapColumn = reinterpret_cast<fc_fuel_map_column_t*>(rawmessagedata.data());
+
+    currentFuelMap[0][columnIdx] = (fuelMapColumn->row0 * 4.0) / 1000.0;
+    currentFuelMap[1][columnIdx] = (fuelMapColumn->row1 * 4.0) / 1000.0;
+    currentFuelMap[2][columnIdx] = (fuelMapColumn->row2 * 4.0) / 1000.0;
+    currentFuelMap[3][columnIdx] = (fuelMapColumn->row3 * 4.0) / 1000.0;
+    currentFuelMap[4][columnIdx] = (fuelMapColumn->row4 * 4.0) / 1000.0;
+    currentFuelMap[5][columnIdx] = (fuelMapColumn->row5 * 4.0) / 1000.0;
+    currentFuelMap[6][columnIdx] = (fuelMapColumn->row6 * 4.0) / 1000.0;
+    currentFuelMap[7][columnIdx] = (fuelMapColumn->row7 * 4.0) / 1000.0;
+    currentFuelMap[8][columnIdx] = (fuelMapColumn->row8 * 4.0) / 1000.0;
+    currentFuelMap[9][columnIdx] = (fuelMapColumn->row9 * 4.0) / 1000.0;
+    currentFuelMap[10][columnIdx] = (fuelMapColumn->row10 * 4.0) / 1000.0;
+    currentFuelMap[11][columnIdx] = (fuelMapColumn->row11 * 4.0) / 1000.0;
+    currentFuelMap[12][columnIdx] = (fuelMapColumn->row12 * 4.0) / 1000.0;
+    currentFuelMap[13][columnIdx] = (fuelMapColumn->row13 * 4.0) / 1000.0;
+    currentFuelMap[14][columnIdx] = (fuelMapColumn->row14 * 4.0) / 1000.0;
+    currentFuelMap[15][columnIdx] = (fuelMapColumn->row15 * 4.0) / 1000.0;
+    currentFuelMap[16][columnIdx] = (fuelMapColumn->row16 * 4.0) / 1000.0;
+    currentFuelMap[17][columnIdx] = (fuelMapColumn->row17 * 4.0) / 1000.0;
+    currentFuelMap[18][columnIdx] = (fuelMapColumn->row18 * 4.0) / 1000.0;
+    currentFuelMap[19][columnIdx] = (fuelMapColumn->row19 * 4.0) / 1000.0;
+
+    std::cout << "Fuel Map" << std::endl;
+    for(int row = 0; row < 20; row++ ) {
+        for (int col = 0; col < 20; col++) {
+            std::cout << "[" << currentFuelMap[row][col] << "] ";
+        }
+        std::cout << std::endl;
+    }
+}
 
 void Apexi::decodeAdv(QByteArray rawmessagedata)
 {
@@ -713,7 +763,7 @@ void Apexi::decodeAux(QByteArray rawmessagedata)
     
 }
 
-
+// Decodes map indices (MapN, MapP)
 void Apexi::decodeMap(QByteArray rawmessagedata)
 {
     fc_map_info_t* info=reinterpret_cast<fc_map_info_t*>(rawmessagedata.data());
