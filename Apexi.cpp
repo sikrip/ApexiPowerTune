@@ -226,19 +226,28 @@ void Apexi::apexiECU(const QByteArray &buffer)
         
     }
     
-    if (m_buffer.length() == expectedbytes)
-    {
+    if (m_buffer.length() == expectedbytes) {
         m_dashboard->setTimeoutStat(QString("Is Timeout : N"));
         
         m_apexiMsg =  m_buffer;
         m_buffer.clear();
         m_timer.stop();
-        if(requestIndex <= 6){requestIndex++;}
-        else{requestIndex = 3;}
+
+        // Decide the next request to be sent to PFC
+        // Once go through 0..7 (init, sensor strings, init, adv data, map idx, sensor data, basic data, aux)
+        // then go through 3..7 (adv data, map idx, sensor data, basic data, aux)
+        if(requestIndex <= 6) {
+            requestIndex++;
+        } else{
+            requestIndex = 3;
+        }
+
+        // Decode current data
         readData(m_apexiMsg);
         m_apexiMsg.clear();
+
+        // Send next request
         Apexi::sendRequest(requestIndex);
-        //        }
     }
 }
 
