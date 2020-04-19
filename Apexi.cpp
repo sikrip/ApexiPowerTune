@@ -24,7 +24,7 @@ QString Auxname1;
 QString Auxname2;
 QString Modelname;
 int Model = 0;
-int Logging =3;
+int Logging =3; // what is this?
 int Loggerstat;
 
 float auxval1; // an1-2 v0
@@ -32,7 +32,16 @@ float auxval2; // an1-2 v5
 float auxval3; // an3-4 v0
 float auxval4; // an3-4 v5
 
-int requestIndex = 0; //ID for requested data type Power FC
+int requestIndex = 0; // ID for requested data type Power FC
+const int FIRST_INIT_REQUEST_IDX = 0;
+const int SENSOR_STR_REQUEST_IDX = 1;
+const int SECOND_INIT_REQUEST_IDX = 2;
+const int ADV_DATA_REQUEST_IDX = 3;
+const int MAP_IDX_REQUEST_IDX = 4;
+const int SENSOR_DATA_REQUEST_IDX = 5;
+const int BASIC_DATA_REQUEST_IDX = 6;
+const int AUX_REQUEST_IDX = 7;
+
 int expectedbytes;
 int Bytes;
 int Protocol = 0;
@@ -122,7 +131,7 @@ void Apexi::openConnection(const QString &portName)
     else
     {
         m_dashboard->setSerialStat(QString("Connected to Serialport"));
-        requestIndex = 0;
+        requestIndex = FIRST_INIT_REQUEST_IDX;
         Apexi::sendRequest(requestIndex);
     }
     
@@ -155,7 +164,7 @@ void Apexi::handleTimeout()
         m_dashboard->setSerialStat(QString("Connected to Serialport"));
     }
     
-    requestIndex = 2;
+    requestIndex = SECOND_INIT_REQUEST_IDX;
     m_readData.clear();
     
     Apexi::sendRequest(requestIndex);
@@ -234,12 +243,12 @@ void Apexi::apexiECU(const QByteArray &buffer)
         m_timer.stop();
 
         // Decide the next request to be sent to PFC
-        // Once go through 0..7 (init, sensor strings, init, adv data, map idx, sensor data, basic data, aux)
-        // then go through 3..7 (adv data, map idx, sensor data, basic data, aux)
-        if(requestIndex <= 6) {
+        if(requestIndex < AUX_REQUEST_IDX) {
+            // Once go through 0..7 (init, sensor strings, init, adv data, map idx, sensor data, basic data, aux)
             requestIndex++;
-        } else{
-            requestIndex = 3;
+        } else {
+            // then from 7 cycle through 3..7 (adv data, map idx, sensor data, basic data, aux)
+            requestIndex = ADV_DATA_REQUEST_IDX;
         }
 
         // Decode current data
@@ -293,15 +302,12 @@ void Apexi::readData(QByteArray rawmessagedata)
             break;
         case ID::Init:
             Apexi::decodeInit(rawmessagedata);
-            if (reconnect == 0)
-            {
+            if (reconnect == 0) {
                qDebug() << "reconnect";
                reconnect = 1;
-               requestIndex = 0;
+               requestIndex = FIRST_INIT_REQUEST_IDX;
                Apexi::closeConnection();
                QTimer::singleShot(2000, this, SLOT(retryconnect()));
-
-
             }
             break;
             
@@ -347,52 +353,47 @@ void Apexi::writeRequestPFC(QByteArray p_request)
 
 //Power FC requests
 
-void Apexi::sendRequest(int requestIndex)
-{
+void Apexi::sendRequest(int requestIndex) {
     if (Protocol == 0){
         switch (requestIndex){
-        
-        
-        
         //New Apexi Structure
-        case 0:
+        case FIRST_INIT_REQUEST_IDX:
             //Init Platform (This returns the Platform String )
             Apexi::writeRequestPFC(QByteArray::fromHex("F3020A"));
             expectedbytes = 11;
             break;
-        case 1:
+        case SENSOR_STR_REQUEST_IDX:
             //Apexi::getSensorStrings();
             Apexi::writeRequestPFC(QByteArray::fromHex("DD0220"));
             expectedbytes = 83;
             break;
-        case 2:
+        case SECOND_INIT_REQUEST_IDX:
             //Init Platform (This returns the Platform String )
             Apexi::writeRequestPFC(QByteArray::fromHex("F3020A"));
             expectedbytes = 11;
             break;
             // Live Data
-        case 3:
+        case ADV_DATA_REQUEST_IDX:
             //Apexi::getAdvData();
             Apexi::writeRequestPFC(QByteArray::fromHex("F0020D"));
             expectedbytes = 33;
             break;
-            
-        case 4:
+        case MAP_IDX_REQUEST_IDX:
             //Apexi::getMapIndices();
             Apexi::writeRequestPFC(QByteArray::fromHex("DB0222"));
             expectedbytes = 5;
             break;
-        case 5:
+        case SENSOR_DATA_REQUEST_IDX:
             //Apexi::getSensorData();
             Apexi::writeRequestPFC(QByteArray::fromHex("DE021F"));
             expectedbytes = 21;
             break;
-        case 6:
+        case BASIC_DATA_REQUEST_IDX:
             //Apexi::getBasic();
             Apexi::writeRequestPFC(QByteArray::fromHex("DA0223"));
             expectedbytes = 23;
             break;
-        case 7:
+        case AUX_REQUEST_IDX:
             //Apexi::getAux();
             Apexi::writeRequestPFC(QByteArray::fromHex("0002FD"));
             expectedbytes = 7;
@@ -403,40 +404,40 @@ void Apexi::sendRequest(int requestIndex)
     {
         switch (requestIndex){
         // Old Apexi Structure
-        case 0:
+        case FIRST_INIT_REQUEST_IDX:
             //Init Platform (This returns the Platform String )
             Apexi::writeRequestPFC(QByteArray::fromHex("F3020A"));
             expectedbytes = 11;
             break;
-        case 1:
+        case SENSOR_STR_REQUEST_IDX:
             //Apexi::getSensorStrings();
             Apexi::writeRequestPFC(QByteArray::fromHex("690294"));
             expectedbytes = 83;
             break;
             
             // Live Data
-        case 2:
+        case SECOND_INIT_REQUEST_IDX:
             //Apexi::getAdvData();
             Apexi::writeRequestPFC(QByteArray::fromHex("F0020D"));
             expectedbytes = 33;
             break;
             
-        case 3:
+        case ADV_DATA_REQUEST_IDX:
             //Apexi::getMapIndices();
             Apexi::writeRequestPFC(QByteArray::fromHex("680295"));
             expectedbytes = 5;
             break;
-        case 4:
+        case MAP_IDX_REQUEST_IDX:
             //Apexi::getSensorData();
             Apexi::writeRequestPFC(QByteArray::fromHex("6A0293"));
             expectedbytes = 21;
             break;
-        case 5:
+        case SENSOR_DATA_REQUEST_IDX:
             //Apexi::getBasic();
             Apexi::writeRequestPFC(QByteArray::fromHex("660297"));
             expectedbytes = 23;
             break;
-        case 6:
+        case BASIC_DATA_REQUEST_IDX:
             //Apexi::getAux();
             Apexi::writeRequestPFC(QByteArray::fromHex("0002FD"));
             expectedbytes = 7;
