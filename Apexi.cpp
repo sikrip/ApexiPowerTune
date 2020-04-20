@@ -514,6 +514,10 @@ void Apexi::decodeFuelMap(int batchNumber, QByteArray rawmessagedata) {
         case 8:
             col = 17;
             break;
+        default:
+            // invalid request number
+            std::cerr << "Invalid fuel map request number: " << batchNumber << std::endl;
+            return;
     }
     // 0 = id, 1 = number of bytes, 2...101 = fuel table payload
     fc_fuel_map_cell_t* fuelCellValue;
@@ -527,10 +531,13 @@ void Apexi::decodeFuelMap(int batchNumber, QByteArray rawmessagedata) {
         }
     }
 
-    std::cout << "Fuel Map" << std::endl;
+    std::cout << "==== Current Fuel Map ====" << std::endl;
     for(int row = 0; row < 20; row++ ) {
         for (int col = 0; col < 20; col++) {
-            std::cout << "[" << currentFuelMap[row][col] << "] ";
+            std::cout << currentFuelMap[row][col];
+            if (col < 19) {
+                std::cout << ",";
+            }
         }
         std::cout << std::endl;
     }

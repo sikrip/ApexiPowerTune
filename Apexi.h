@@ -362,9 +362,9 @@ private:
     struct fc_fullFuelBase_info_t{
         quint16 fuelBase[800];
     };
-    
-    
-    
+
+
+
 public:
     explicit Apexi(QObject *parent = 0);
     explicit Apexi(DashBoard *dashboard, QObject *parent = 0);
@@ -405,6 +405,7 @@ public slots:
     void decodeAux(QByteArray rawmessagedata);
     void decodeMap(QByteArray rawmessagedata);
     void decodeBasic(QByteArray rawmessagedata);
+    void decodeFuelMap(int batchNumber, QByteArray rawmessagedata);
     // void decodeVersion(QByteArray rawmessagedata);
     void decodeInit(QByteArray rawmessagedata);
     void decodeSensorStrings(QByteArray rawmessagedata);
