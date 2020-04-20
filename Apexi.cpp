@@ -380,7 +380,7 @@ void Apexi::sendRequest(int requestIndex) {
             expectedbytes = 11;
             break;
         case FUEL_MAP_REQUEST_IDX:
-            // Request fuel map (column 0)
+            // Request fuel map (request 1 of 8)
             Apexi::writeRequestPFC(QByteArray::fromHex("B0024D"));
             expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
             break;
@@ -427,7 +427,7 @@ void Apexi::sendRequest(int requestIndex) {
             expectedbytes = 83;
             break;
         case FUEL_MAP_REQUEST_IDX:
-            // Request fuel map (column 0)
+            // Request fuel map (request 1 of 8)
             Apexi::writeRequestPFC(QByteArray::fromHex("B0024D"));
             expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
             break;
@@ -522,7 +522,7 @@ void Apexi::decodeFuelMap(int batchNumber, QByteArray rawmessagedata) {
     // 0 = id, 1 = number of bytes, 2...101 = fuel table payload
     fc_fuel_map_cell_t* fuelCellValue;
     for(int pos=2; pos <= 100; pos+=2) {
-        fuelCellValue = reinterpret_cast<fc_fuel_map_cell_t*>(rawmessagedata.mid(pos, 2));
+        fuelCellValue = reinterpret_cast<fc_fuel_map_cell_t*>(rawmessagedata.mid(pos, 2).data());
         currentFuelMap[row++][col] = (fuelCellValue->cellValue * 4.0) / 1000.0;
         if (row == 20) {
             // Move to next column
