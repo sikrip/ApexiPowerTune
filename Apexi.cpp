@@ -1,6 +1,7 @@
 #include "Apexi.h"
 #include "dashboard.h"
 #include "connect.h"
+#include <iostream>
 #include <QTime>
 #include <QTimer>
 #include <QDebug>
@@ -314,8 +315,8 @@ void Apexi::readData(QByteArray rawmessagedata)
                QTimer::singleShot(2000, this, SLOT(retryconnect()));
             }
             break;
-        case ID::FuelMapColumn0:
-            Apexi::decodeFuelMap(0, rawmessagedata);
+        case ID::FuelMapBatch1:
+            Apexi::decodeFuelMap(1, rawmessagedata);
             break;
         /*
         case ID::Version:
@@ -480,32 +481,51 @@ void Apexi::Auxcalc (const QString &unitaux1,const qreal &an1V0,const qreal &an2
 }
 
 /**
- * Decodes and stores the fuel map. This is done column by column.
+ * Decodes and stores the fuel map. This is done with batches of 50 cells column by column.
+ *
+ * @param batchNumber the number of the batch (1-8)
+ * @param rawmessagedata the raw PFC cell data
  */
-void Apexi::decodeFuelMap(int columnIdx, QByteArray rawmessagedata) {
-
-    fc_fuel_map_column_t* fuelMapColumn = reinterpret_cast<fc_fuel_map_column_t*>(rawmessagedata.data());
-
-    currentFuelMap[0][columnIdx] = (fuelMapColumn->row0 * 4.0) / 1000.0;
-    currentFuelMap[1][columnIdx] = (fuelMapColumn->row1 * 4.0) / 1000.0;
-    currentFuelMap[2][columnIdx] = (fuelMapColumn->row2 * 4.0) / 1000.0;
-    currentFuelMap[3][columnIdx] = (fuelMapColumn->row3 * 4.0) / 1000.0;
-    currentFuelMap[4][columnIdx] = (fuelMapColumn->row4 * 4.0) / 1000.0;
-    currentFuelMap[5][columnIdx] = (fuelMapColumn->row5 * 4.0) / 1000.0;
-    currentFuelMap[6][columnIdx] = (fuelMapColumn->row6 * 4.0) / 1000.0;
-    currentFuelMap[7][columnIdx] = (fuelMapColumn->row7 * 4.0) / 1000.0;
-    currentFuelMap[8][columnIdx] = (fuelMapColumn->row8 * 4.0) / 1000.0;
-    currentFuelMap[9][columnIdx] = (fuelMapColumn->row9 * 4.0) / 1000.0;
-    currentFuelMap[10][columnIdx] = (fuelMapColumn->row10 * 4.0) / 1000.0;
-    currentFuelMap[11][columnIdx] = (fuelMapColumn->row11 * 4.0) / 1000.0;
-    currentFuelMap[12][columnIdx] = (fuelMapColumn->row12 * 4.0) / 1000.0;
-    currentFuelMap[13][columnIdx] = (fuelMapColumn->row13 * 4.0) / 1000.0;
-    currentFuelMap[14][columnIdx] = (fuelMapColumn->row14 * 4.0) / 1000.0;
-    currentFuelMap[15][columnIdx] = (fuelMapColumn->row15 * 4.0) / 1000.0;
-    currentFuelMap[16][columnIdx] = (fuelMapColumn->row16 * 4.0) / 1000.0;
-    currentFuelMap[17][columnIdx] = (fuelMapColumn->row17 * 4.0) / 1000.0;
-    currentFuelMap[18][columnIdx] = (fuelMapColumn->row18 * 4.0) / 1000.0;
-    currentFuelMap[19][columnIdx] = (fuelMapColumn->row19 * 4.0) / 1000.0;
+void Apexi::decodeFuelMap(int batchNumber, QByteArray rawmessagedata) {
+    int row = (batchNumber % 2 == 1) ? 0 : 10; // 1, 3, 5, 7 start with row 0; 2, 4, 6, 8 start at row 10
+    int col;
+    switch(batchNumber) {
+        case 1:
+            col = 0;
+            break;
+        case 2:
+            col = 2;
+            break;
+        case 3:
+            col = 5;
+            break;
+        case 4:
+            col = 8;
+            break;
+        case 5:
+            col = 10;
+            break;
+        case 6:
+            col = 12;
+            break;
+        case 7:
+            col = 15;
+            break;
+        case 8:
+            col = 17;
+            break;
+    }
+    // 0 = id, 1 = number of bytes, 2...101 = fuel table payload
+    fc_fuel_map_cell_t* fuelCellValue;
+    for(int pos=2; pos <= 100; pos+=2) {
+        fuelCellValue = reinterpret_cast<fc_fuel_map_cell_t*>(rawmessagedata.mid(pos, 2));
+        currentFuelMap[row++][col] = (fuelCellValue->cellValue * 4.0) / 1000.0;
+        if (row == 20) {
+            // Move to next column
+            row = 0;
+            col++;
+        }
+    }
 
     std::cout << "Fuel Map" << std::endl;
     for(int row = 0; row < 20; row++ ) {

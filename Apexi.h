@@ -21,7 +21,7 @@ enum ENUM {
     OldSensorData=0x6A,
     OldBasicData=0x66,
     OldSensorStrings=0x69,
-    FuelMapColumn0=0xB0,
+    FuelMapBatch1=0xB0,
 };
 }
 
@@ -44,31 +44,9 @@ private:
 #define FC_INFO_ADD		{0,-1.0332, 0, 0, 0, 0, -25, -25, -80, 0, 0, 0, -80, -80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -128}
     void run();
 
-    struct fc_fuel_map_column_t{
-
-        quint16 requesttype; // id and number of bytes
-        quint16 row0; // each row is a two byte short float
-        quint16 row1;
-        quint16 row2;
-        quint16 row3;
-        quint16 row4;
-        quint16 row5;
-        quint16 row6;
-        quint16 row7;
-        quint16 row8;
-        quint16 row9;
-        quint16 row10;
-        quint16 row11;
-        quint16 row12;
-        quint16 row13;
-        quint16 row14;
-        quint16 row15;
-        quint16 row16;
-        quint16 row17;
-        quint16 row18;
-        quint16 row19;
-        quint8 checksum;
-        fc_fuel_map_column_t parse(const QByteArray &);
+    struct fc_fuel_map_cell_t{
+        quint16 cellValue; // each cell is a two byte short float
+        fc_fuel_map_cell_t parse(const QByteArray &);
     };
     
     
