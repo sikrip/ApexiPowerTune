@@ -34,15 +34,22 @@ float auxval3; // an3-4 v0
 float auxval4; // an3-4 v5
 
 int requestIndex = 0; // ID for requested data type Power FC
-const int FIRST_INIT_REQUEST_IDX = 0;
-const int SENSOR_STR_REQUEST_IDX = 1;
-const int SECOND_INIT_REQUEST_IDX = 2;
-const int FUEL_MAP_REQUEST_IDX = 3;
-const int ADV_DATA_REQUEST_IDX = 4;
-const int MAP_IDX_REQUEST_IDX = 5;
-const int SENSOR_DATA_REQUEST_IDX = 6;
-const int BASIC_DATA_REQUEST_IDX = 7;
-const int AUX_REQUEST_IDX = 8;
+const int FIRST_INIT_REQUEST = 0;
+const int SENSOR_STR_REQUEST = 1;
+const int SECOND_INIT_REQUEST = 2;
+const int FUEL_MAP_REQUEST_1 = 3;
+const int FUEL_MAP_REQUEST_2 = 4;
+const int FUEL_MAP_REQUEST_3 = 5;
+const int FUEL_MAP_REQUEST_4 = 6;
+const int FUEL_MAP_REQUEST_5 = 7;
+const int FUEL_MAP_REQUEST_6 = 8;
+const int FUEL_MAP_REQUEST_7 = 9;
+const int FUEL_MAP_REQUEST_8 = 10;
+const int ADV_DATA_REQUEST = 11;
+const int MAP_IDX_REQUEST = 12;
+const int SENSOR_DATA_REQUEST = 13;
+const int BASIC_DATA_REQUEST = 14;
+const int AUX_REQUEST = 15;
 
 int expectedbytes;
 int Bytes;
@@ -136,7 +143,7 @@ void Apexi::openConnection(const QString &portName)
     else
     {
         m_dashboard->setSerialStat(QString("Connected to Serialport"));
-        requestIndex = FIRST_INIT_REQUEST_IDX;
+        requestIndex = FIRST_INIT_REQUEST;
         Apexi::sendRequest(requestIndex);
     }
     
@@ -169,7 +176,7 @@ void Apexi::handleTimeout()
         m_dashboard->setSerialStat(QString("Connected to Serialport"));
     }
     
-    requestIndex = SECOND_INIT_REQUEST_IDX;
+    requestIndex = SECOND_INIT_REQUEST;
     m_readData.clear();
     
     Apexi::sendRequest(requestIndex);
@@ -248,12 +255,12 @@ void Apexi::apexiECU(const QByteArray &buffer)
         m_timer.stop();
 
         // Decide the next request to be sent to PFC
-        if(requestIndex < AUX_REQUEST_IDX) {
+        if(requestIndex < AUX_REQUEST) {
             // Once go through all requests (init, sensor strings, init, fuel map, adv data, map idx, sensor data, basic data, aux)
             requestIndex++;
         } else {
-            // then cycle through live data requests ADV_DATA_REQUEST_IDX..AUX_REQUEST_IDX (adv data, map idx, sensor data, basic data, aux)
-            requestIndex = ADV_DATA_REQUEST_IDX;
+            // then cycle through live data requests ADV_DATA_REQUEST..AUX_REQUEST (adv data, map idx, sensor data, basic data, aux)
+            requestIndex = ADV_DATA_REQUEST;
         }
 
         // Decode current data
@@ -310,7 +317,7 @@ void Apexi::readData(QByteArray rawmessagedata)
             if (reconnect == 0) {
                qDebug() << "reconnect";
                reconnect = 1;
-               requestIndex = FIRST_INIT_REQUEST_IDX;
+               requestIndex = FIRST_INIT_REQUEST;
                Apexi::closeConnection();
                QTimer::singleShot(2000, this, SLOT(retryconnect()));
             }
@@ -364,48 +371,83 @@ void Apexi::sendRequest(int requestIndex) {
     if (Protocol == 0){
         switch (requestIndex){
         //New Apexi Structure
-        case FIRST_INIT_REQUEST_IDX:
+        case FIRST_INIT_REQUEST:
             //Init Platform (This returns the Platform String )
             Apexi::writeRequestPFC(QByteArray::fromHex("F3020A"));
             expectedbytes = 11;
             break;
-        case SENSOR_STR_REQUEST_IDX:
+        case SENSOR_STR_REQUEST:
             //Apexi::getSensorStrings();
             Apexi::writeRequestPFC(QByteArray::fromHex("DD0220"));
             expectedbytes = 83;
             break;
-        case SECOND_INIT_REQUEST_IDX:
+        case SECOND_INIT_REQUEST:
             //Init Platform (This returns the Platform String )
             Apexi::writeRequestPFC(QByteArray::fromHex("F3020A"));
             expectedbytes = 11;
             break;
-        case FUEL_MAP_REQUEST_IDX:
+        case FUEL_MAP_REQUEST_1:
             // Request fuel map (request 1 of 8)
             Apexi::writeRequestPFC(QByteArray::fromHex("B0024D"));
             expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
             break;
+        case FUEL_MAP_REQUEST_2:
+            // Request fuel map (request 2 of 8)
+            Apexi::writeRequestPFC(QByteArray::fromHex("B1024C"));
+            expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+            break;
+        case FUEL_MAP_REQUEST_3:
+                // Request fuel map (request 3 of 8)
+                Apexi::writeRequestPFC(QByteArray::fromHex("B2024B"));
+                expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+                break;
+        case FUEL_MAP_REQUEST_4:
+                // Request fuel map (request 4 of 8)
+                Apexi::writeRequestPFC(QByteArray::fromHex("B3024A"));
+                expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+                break;
+        case FUEL_MAP_REQUEST_5:
+                // Request fuel map (request 5 of 8)
+                Apexi::writeRequestPFC(QByteArray::fromHex("B40249"));
+                expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+                break;
+        case FUEL_MAP_REQUEST_6:
+            // Request fuel map (request 6 of 8)
+            Apexi::writeRequestPFC(QByteArray::fromHex("B50248"));
+            expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+            break;
+        case FUEL_MAP_REQUEST_7:
+                // Request fuel map (request 7 of 8)
+                Apexi::writeRequestPFC(QByteArray::fromHex("B60247"));
+                expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+                break;
+        case FUEL_MAP_REQUEST_8:
+                // Request fuel map (request 8 of 8)
+                Apexi::writeRequestPFC(QByteArray::fromHex("B70246"));
+                expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+                break;
         // Live Data
-        case ADV_DATA_REQUEST_IDX:
+        case ADV_DATA_REQUEST:
             //Apexi::getAdvData();
             Apexi::writeRequestPFC(QByteArray::fromHex("F0020D"));
             expectedbytes = 33;
             break;
-        case MAP_IDX_REQUEST_IDX:
+        case MAP_IDX_REQUEST:
             //Apexi::getMapIndices();
             Apexi::writeRequestPFC(QByteArray::fromHex("DB0222"));
             expectedbytes = 5;
             break;
-        case SENSOR_DATA_REQUEST_IDX:
+        case SENSOR_DATA_REQUEST:
             //Apexi::getSensorData();
             Apexi::writeRequestPFC(QByteArray::fromHex("DE021F"));
             expectedbytes = 21;
             break;
-        case BASIC_DATA_REQUEST_IDX:
+        case BASIC_DATA_REQUEST:
             //Apexi::getBasic();
             Apexi::writeRequestPFC(QByteArray::fromHex("DA0223"));
             expectedbytes = 23;
             break;
-        case AUX_REQUEST_IDX:
+        case AUX_REQUEST:
             //Apexi::getAux();
             Apexi::writeRequestPFC(QByteArray::fromHex("0002FD"));
             expectedbytes = 7;
@@ -416,44 +458,78 @@ void Apexi::sendRequest(int requestIndex) {
     {
         switch (requestIndex){
         // Old Apexi Structure
-        case FIRST_INIT_REQUEST_IDX:
+        case FIRST_INIT_REQUEST:
             //Init Platform (This returns the Platform String )
             Apexi::writeRequestPFC(QByteArray::fromHex("F3020A"));
             expectedbytes = 11;
             break;
-        case SENSOR_STR_REQUEST_IDX:
+        case SENSOR_STR_REQUEST:
             //Apexi::getSensorStrings();
             Apexi::writeRequestPFC(QByteArray::fromHex("690294"));
             expectedbytes = 83;
             break;
-        case FUEL_MAP_REQUEST_IDX:
-            // Request fuel map (request 1 of 8)
-            Apexi::writeRequestPFC(QByteArray::fromHex("B0024D"));
-            expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
-            break;
-        // Live Data
-        case SECOND_INIT_REQUEST_IDX:
+        case SECOND_INIT_REQUEST:
             //Apexi::getAdvData();
             Apexi::writeRequestPFC(QByteArray::fromHex("F0020D"));
             expectedbytes = 33;
             break;
-            
-        case ADV_DATA_REQUEST_IDX:
+        case FUEL_MAP_REQUEST_1:
+            // Request fuel map (request 1 of 8)
+            Apexi::writeRequestPFC(QByteArray::fromHex("B0024D"));
+            expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+            break;
+        case FUEL_MAP_REQUEST_2:
+            // Request fuel map (request 2 of 8)
+            Apexi::writeRequestPFC(QByteArray::fromHex("B1024C"));
+            expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+            break;
+        case FUEL_MAP_REQUEST_3:
+            // Request fuel map (request 3 of 8)
+            Apexi::writeRequestPFC(QByteArray::fromHex("B2024B"));
+            expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+            break;
+        case FUEL_MAP_REQUEST_4:
+            // Request fuel map (request 4 of 8)
+            Apexi::writeRequestPFC(QByteArray::fromHex("B3024A"));
+            expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+            break;
+        case FUEL_MAP_REQUEST_5:
+            // Request fuel map (request 5 of 8)
+            Apexi::writeRequestPFC(QByteArray::fromHex("B40249"));
+            expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+            break;
+        case FUEL_MAP_REQUEST_6:
+            // Request fuel map (request 6 of 8)
+            Apexi::writeRequestPFC(QByteArray::fromHex("B50248"));
+            expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+            break;
+        case FUEL_MAP_REQUEST_7:
+            // Request fuel map (request 7 of 8)
+            Apexi::writeRequestPFC(QByteArray::fromHex("B60247"));
+            expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+            break;
+        case FUEL_MAP_REQUEST_8:
+            // Request fuel map (request 8 of 8)
+            Apexi::writeRequestPFC(QByteArray::fromHex("B70246"));
+            expectedbytes = 103; // 1(id) + 1(num) + 100(payload) + 1(checksum);
+            break;
+        // Live Data
+        case ADV_DATA_REQUEST:
             //Apexi::getMapIndices();
             Apexi::writeRequestPFC(QByteArray::fromHex("680295"));
             expectedbytes = 5;
             break;
-        case MAP_IDX_REQUEST_IDX:
+        case MAP_IDX_REQUEST:
             //Apexi::getSensorData();
             Apexi::writeRequestPFC(QByteArray::fromHex("6A0293"));
             expectedbytes = 21;
             break;
-        case SENSOR_DATA_REQUEST_IDX:
+        case SENSOR_DATA_REQUEST:
             //Apexi::getBasic();
             Apexi::writeRequestPFC(QByteArray::fromHex("660297"));
             expectedbytes = 23;
             break;
-        case BASIC_DATA_REQUEST_IDX:
+        case BASIC_DATA_REQUEST:
             //Apexi::getAux();
             Apexi::writeRequestPFC(QByteArray::fromHex("0002FD"));
             expectedbytes = 7;
@@ -461,7 +537,6 @@ void Apexi::sendRequest(int requestIndex) {
             break;
         }
     }
-    
     m_timer.start(700); //Set timout to 700 mseconds 
 }
 
@@ -483,13 +558,13 @@ void Apexi::Auxcalc (const QString &unitaux1,const qreal &an1V0,const qreal &an2
 /**
  * Decodes and stores the fuel map. This is done with batches of 50 cells column by column.
  *
- * @param batchNumber the number of the batch (1-8)
+ * @param fuelRequestNumber the number of the fuel map request (1-8)
  * @param rawmessagedata the raw PFC cell data
  */
-void Apexi::decodeFuelMap(int batchNumber, QByteArray rawmessagedata) {
-    int row = (batchNumber % 2 == 1) ? 0 : 10; // 1, 3, 5, 7 start with row 0; 2, 4, 6, 8 start at row 10
+void Apexi::decodeFuelMap(int fuelRequestNumber, QByteArray rawmessagedata) {
+    int row = (fuelRequestNumber % 2 == 1) ? 0 : 10; // 1, 3, 5, 7 start with row 0; 2, 4, 6, 8 start at row 10
     int col;
-    switch(batchNumber) {
+    switch(fuelRequestNumber) {
         case 1:
             col = 0;
             break;
@@ -516,7 +591,7 @@ void Apexi::decodeFuelMap(int batchNumber, QByteArray rawmessagedata) {
             break;
         default:
             // invalid request number
-            std::cerr << "Invalid fuel map request number: " << batchNumber << std::endl;
+            std::cerr << "Invalid fuel map request number: " << fuelRequestNumber << std::endl;
             return;
     }
     // 0 = id, 1 = number of bytes, 2...101 = fuel table payload
