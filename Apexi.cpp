@@ -328,7 +328,28 @@ void Apexi::readData(QByteArray rawmessagedata)
         case ID::FuelMapBatch1:
             Apexi::decodeFuelMap(1, rawmessagedata);
             break;
-        /*
+        case ID::FuelMapBatch2:
+            Apexi::decodeFuelMap(2, rawmessagedata);
+            break;
+        case ID::FuelMapBatch3:
+            Apexi::decodeFuelMap(3, rawmessagedata);
+            break;
+        case ID::FuelMapBatch4:
+            Apexi::decodeFuelMap(4, rawmessagedata);
+            break;
+        case ID::FuelMapBatch5:
+                Apexi::decodeFuelMap(5, rawmessagedata);
+                break;
+        case ID::FuelMapBatch6:
+            Apexi::decodeFuelMap(6, rawmessagedata);
+            break;
+        case ID::FuelMapBatch7:
+            Apexi::decodeFuelMap(7, rawmessagedata);
+            break;
+        case ID::FuelMapBatch8:
+            Apexi::decodeFuelMap(8, rawmessagedata);
+            break;
+            /*
         case ID::Version:
             Apexi::decodeVersion(rawmessagedata);
             break;

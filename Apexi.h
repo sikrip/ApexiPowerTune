@@ -22,6 +22,13 @@ enum ENUM {
     OldBasicData=0x66,
     OldSensorStrings=0x69,
     FuelMapBatch1=0xB0,
+    FuelMapBatch2=0xB1,
+    FuelMapBatch3=0xB2,
+    FuelMapBatch4=0xB3,
+    FuelMapBatch5=0xB4,
+    FuelMapBatch6=0xB5,
+    FuelMapBatch7=0xB6,
+    FuelMapBatch8=0xB7,
 };
 }
 
