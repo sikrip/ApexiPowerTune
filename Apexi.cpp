@@ -79,6 +79,9 @@ static QString mapFD3S[] ={"InjDuty", "IGL","IGT","Rpm","Speed","Boost","Knock",
 */
 // The fuel map currenlty in the PFC
 double currentFuelMap[20/* rows */][20/* cols */];
+double loggedSumAfrMap[20/* rows */][20/* cols */];
+double loggedNumAfrMap[20/* rows */][20/* cols */];
+int samplesTotal = 0;
 
 Apexi::Apexi(QObject *parent)
     : QObject(parent)
@@ -862,7 +865,38 @@ void Apexi::decodeAux(QByteArray rawmessagedata)
     m_dashboard->setauxcalc2(AN3AN4calc);
     //qDebug()<< "AN1-AN2" << AN1AN2calc ;
     //qDebug()<< "AN1-AN2" << AN3AN4calc ;
+
+    int rpmIdx = packageMap[0]; // col
+    int loadIdx = packageMap[1];// row
     
+    // sum afr values
+    loggedSumAfrMap[loadIdx][rpmIdx] += (double) AN3AN4calc; // AN3AN4calc is connected to the wideband
+    loggedNumAfrMap[loadIdx][rpmIdx]++;
+
+    samplesTotal++;
+
+    if (samplesTotal % 10 == 0) {
+        std::cout << "==== Num AFR Map ====" << std::endl;
+        for (int row = 0; row < 20; row++) {
+            for (int col = 0; col < 20; col++) {
+                std::cout << loggedNumAfrMap[row][col];
+                if (col < 19) {
+                    std::cout << ",";
+                }
+            }
+            std::cout << std::endl;
+        }
+        std::cout << "==== Avg AFR Map ====" << std::endl;
+        for (int row = 0; row < 20; row++) {
+            for (int col = 0; col < 20; col++) {
+                std::cout << loggedSumAfrMap[row][col] / loggedNumAfrMap[row][col];
+                if (col < 19) {
+                    std::cout << ",";
+                }
+            }
+            std::cout << std::endl;
+        }
+    }
 }
 
 // Decodes map indices (MapN, MapP)
@@ -870,8 +904,12 @@ void Apexi::decodeMap(QByteArray rawmessagedata)
 {
     fc_map_info_t* info=reinterpret_cast<fc_map_info_t*>(rawmessagedata.data());
     
-    packageMap[0] = mul[0] * info->Map_N + add[0];
-    packageMap[1] = mul[0] * info->Map_P + add[0];
+    packageMap[0] = mul[0] * info->Map_N + add[0]; // rpm (column)
+    packageMap[1] = mul[0] * info->Map_P + add[0]; // load (row)
+
+    if (samplesTotal % 10 == 0) {
+        std::cout << "MapN: " << packageMap[0] << ", MapP: " << packageMap[1] << std::endl;
+    }
     
 }
 void Apexi::decodeBasic(QByteArray rawmessagedata)
