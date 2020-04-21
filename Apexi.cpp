@@ -338,8 +338,8 @@ void Apexi::readData(QByteArray rawmessagedata)
             Apexi::decodeFuelMap(4, rawmessagedata);
             break;
         case ID::FuelMapBatch5:
-                Apexi::decodeFuelMap(5, rawmessagedata);
-                break;
+            Apexi::decodeFuelMap(5, rawmessagedata);
+            break;
         case ID::FuelMapBatch6:
             Apexi::decodeFuelMap(6, rawmessagedata);
             break;
@@ -599,7 +599,7 @@ void Apexi::decodeFuelMap(int fuelRequestNumber, QByteArray rawmessagedata) {
             col = 5;
             break;
         case 4:
-            col = 8;
+            col = 7;
             break;
         case 5:
             col = 10;
