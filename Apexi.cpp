@@ -332,7 +332,7 @@ void Apexi::sendFuelMapWriteRequest() {
     // Send write request to pfc based on the fuelMapWriteRequest
 }
 
-void Apexi::printFuelMap(double[][] map) {
+void Apexi::printFuelMap(double (&map)[20][20]) {
     for (int row = 0; row < 20; row++) {
         for (int col = 0; col < 20; col++) {
             std::cout << map[row][col];
@@ -397,7 +397,7 @@ int Apexi::calculateNewFuelMap() {
         for (int col = 0; col < 20; col++) {
             if (loggedNumAfrMap[row][col] >= minSamples) {
                 // enough samples logged; re-calc fuel
-                const loggedAvgAfr = loggedSumAfrMap[row][col] / loggedNumAfrMap[row][col];
+                const double loggedAvgAfr = loggedSumAfrMap[row][col] / loggedNumAfrMap[row][col];
                 newFuelMap[row][col] = (loggedAvgAfr / targetAFR) * currentFuelMap[row][col];
                 cellsChanged++;
             } else {
