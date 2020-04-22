@@ -133,8 +133,7 @@ void Apexi::clear()
 
 
 //function to open serial port
-void Apexi::openConnection(const QString &portName)
-{
+void Apexi::openConnection(const QString &portName) {
     qDebug()<<"open Apexi";
     port = portName;
     initSerialPort();
@@ -145,13 +144,12 @@ void Apexi::openConnection(const QString &portName)
     m_serialport->setStopBits(QSerialPort::OneStop);
     m_serialport->setFlowControl(QSerialPort::NoFlowControl);;
     
-    if(m_serialport->open(QIODevice::ReadWrite) == false)
-    {
+    if(m_serialport->open(QIODevice::ReadWrite) == false) {
+        qDebug()<< "Failed to open serial communication." + m_serialport->errorString();
         m_dashboard->setSerialStat(m_serialport->errorString());
         Apexi::closeConnection();
-    }
-    else
-    {
+    } else {
+        qDebug()<< "Connected to Serialport";
         m_dashboard->setSerialStat(QString("Connected to Serialport"));
         requestIndex = FIRST_INIT_REQUEST;
         Apexi::sendRequest(requestIndex);
