@@ -77,11 +77,18 @@ static QString mapFD3S[] ={"InjDuty", "IGL","IGT","Rpm","Speed","Boost","Knock",
                         "STP", "CAT", "ELD", "HWL", "FPD", "FPR", "APR", "PAC", "CCN", "TCN", "PRC" ,"MAP_N","MAP_P",
                         "Basic_Injduty", "Basic_IGL", "Basic_IGT", "Basic_RPM", "Basic_KPH", "Basic_Boost", "Basic_Knock", "Basic_Watert", "Basic_Airt", "Basic_BattV",};
 */
-// The fuel map currenlty in the PFC
+// The fuel map currently in the PFC
 double currentFuelMap[20/* rows */][20/* cols */];
+double newFuelMap[20/* rows */][20/* cols */];
 double loggedSumAfrMap[20/* rows */][20/* cols */];
 double loggedNumAfrMap[20/* rows */][20/* cols */];
-int samplesTotal = 0;
+long afrSamplesCount = 0;
+int fuelMapWriteAttemptInterval = 100; // attempt to write the fuel map each 100 afr samples
+int minCellsChangesForWriteAttempt = 5; // require at least this number of cell changes to attempt a fuel map write
+int minSamples = 10; // TODO should be table
+double targetAFR = 14.7; // TODO should be table
+int fuelMapWriteRequest = 0; // 0 means do not write, for 1..fuelMapMaxRequests the fuel map should be sent to PFC
+int fuelMapMaxRequests = 2; // should be 8 for full map write, for now keep it 2 in order to write only the first part of the map
 
 Apexi::Apexi(QObject *parent)
     : QObject(parent)
@@ -222,8 +229,7 @@ void Apexi::readyToRead()
 
 
 
-void Apexi::apexiECU(const QByteArray &buffer)
-{
+void Apexi::apexiECU(const QByteArray &buffer) {
     
     m_buffer.append(buffer);
     QByteArray startpattern = m_writeData.left(1);
@@ -257,25 +263,151 @@ void Apexi::apexiECU(const QByteArray &buffer)
         m_buffer.clear();
         m_timer.stop();
 
-        // Decide the next request to be sent to PFC
-        if(requestIndex < AUX_REQUEST) {
-            // Once go through all requests (init, sensor strings, init, fuel map, adv data, map idx, sensor data, basic data, aux)
-            requestIndex++;
-        } else {
-            // then cycle through live data requests ADV_DATA_REQUEST..AUX_REQUEST (adv data, map idx, sensor data, basic data, aux)
-            requestIndex = ADV_DATA_REQUEST;
-        }
-
         // Decode current data
         readData(m_apexiMsg);
         m_apexiMsg.clear();
 
-        // Send next request
-        Apexi::sendRequest(requestIndex);
+        if (Apexi::shouldWriteFuelMap()) {
+            sendFuelMapWriteRequest();
+        } else { // Send next read request
+            // Decide the next request to be sent to PFC
+            if(requestIndex < AUX_REQUEST) {
+                // Once go through all requests (init, sensor strings, init, fuel map, adv data, map idx, sensor data, basic data, aux)
+                requestIndex++;
+            } else {
+                // then cycle through live data requests ADV_DATA_REQUEST..AUX_REQUEST (adv data, map idx, sensor data, basic data, aux)
+                requestIndex = ADV_DATA_REQUEST;
+                // New cycle of live data, so update the afr logs with the previous data
+                Apexi::updateAFRData();
+            }
+            Apexi::sendRequest(requestIndex);
+        }
     }
 }
 
+bool Apexi::shouldWriteFuelMap() {
+    if (fuelMapWriteRequest == 0) {
+        // not writing (fuelMapWriteRequest == 0) and its time to attempt
+        if (afrSamplesCount % fuelMapWriteAttemptInterval == 0 && calculateNewFuelMap() >= minCellsChangesForWriteAttempt) {
+            // this is the first write request
 
+            std::cout << "==== Will send the following Fuel Map to PFC ====" << std::endl;
+            printFuelMap(newFuelMap);
+
+            fuelMapWriteRequest = 1;
+            return true;
+        } else {
+            return false;
+        }
+    } else if (fuelMapWriteRequest >= fuelMapMaxRequests) {
+        // this was the last write request
+        syncFuelTablesAndAfrData();
+        fuelMapWriteRequest = 0;
+        return false;
+    } else {
+        // fuelMapWriteRequest = 1..fuelMapMaxRequests, continue with the next fuel write request
+        fuelMapWriteRequest++;
+        return true;
+    }
+}
+
+/**
+ * Copies the newFuelMap to the currentFuelMap and resets the AFR samples where needed.
+ * To be used after sending the newFuelMap to PFC.
+ */
+void Apexi::syncFuelTablesAndAfrData() {
+    for (int row = 0; row < 20; row++) {
+        for (int col = 0; col < 20; col++) {
+            if (newFuelMap[row][col] != currentFuelMap[row][col]) {
+                currentFuelMap[row][col] = newFuelMap[row][col];
+
+                loggedSumAfrMap[row][col] = 0;
+                loggedNumAfrMap[row][col] = 0;
+            }
+        }
+    }
+}
+
+void Apexi::sendFuelMapWriteRequest() {
+    // Send write request to pfc based on the fuelMapWriteRequest
+}
+
+void Apexi::printFuelMap(double[][] map) {
+    for (int row = 0; row < 20; row++) {
+        for (int col = 0; col < 20; col++) {
+            std::cout << map[row][col];
+            if (col < 19) {
+                std::cout << ",";
+            }
+        }
+        std::cout << std::endl;
+    }
+}
+
+void Apexi::updateAFRData() {
+    afrSamplesCount++;
+
+    // TODO if (rmp > 500 && temp > 75)
+
+    int rpmIdx = packageMap[0]; // col MapN
+    int loadIdx = packageMap[1];// row MapP
+
+    // sum afr values
+    loggedSumAfrMap[loadIdx][rpmIdx] += (double) AN3AN4calc; // AN3AN4calc is connected to the wideband
+    // advance number of samples on cell
+    loggedNumAfrMap[loadIdx][rpmIdx]++;
+
+    if (afrSamplesCount % fuelMapWriteAttemptInterval == 0) {
+        std::cout << "==== Num AFR Map ====" << std::endl;
+        for (int row = 0; row < 20; row++) {
+            for (int col = 0; col < 20; col++) {
+                std::cout << loggedNumAfrMap[row][col];
+                if (col < 19) {
+                    std::cout << ",";
+                }
+            }
+            std::cout << std::endl;
+        }
+
+        std::cout << "==== Avg AFR Map ====" << std::endl;
+        for (int row = 0; row < 20; row++) {
+            for (int col = 0; col < 20; col++) {
+                if (loggedNumAfrMap[row][col] > 0) {
+                    std::cout << loggedSumAfrMap[row][col] / loggedNumAfrMap[row][col];
+                } else {
+                    std::cout << "-";
+                }
+                if (col < 19) {
+                    std::cout << ",";
+                }
+            }
+            std::cout << std::endl;
+        }
+    }
+}
+
+/**
+ * Calculates the new fuel map based on the logged AFR.
+ *
+ * @return the number of cells that have changed in the new map
+ */
+int Apexi::calculateNewFuelMap() {
+    int cellsChanged = 0;
+    for (int row = 0; row < 20; row++) {
+        for (int col = 0; col < 20; col++) {
+            if (loggedNumAfrMap[row][col] >= minSamples) {
+                // enough samples logged; re-calc fuel
+                const loggedAvgAfr = loggedSumAfrMap[row][col] / loggedNumAfrMap[row][col];
+                newFuelMap[row][col] = (loggedAvgAfr / targetAFR) * currentFuelMap[row][col];
+                cellsChanged++;
+            } else {
+                // keep the same fuel for this cell
+                newFuelMap[row][col] = currentFuelMap[row][col];
+            }
+        }
+    }
+    return cellsChanged;
+}
 
 
 void Apexi::readData(QByteArray rawmessagedata)
@@ -557,7 +689,6 @@ void Apexi::sendRequest(int requestIndex) {
             //Apexi::getAux();
             Apexi::writeRequestPFC(QByteArray::fromHex("0002FD"));
             expectedbytes = 7;
-            
             break;
         }
     }
@@ -630,20 +761,13 @@ void Apexi::decodeFuelMap(int fuelRequestNumber, QByteArray rawmessagedata) {
         }
     }
 
-    std::cout << "==== Current Fuel Map ====" << std::endl;
-    for(int row = 0; row < 20; row++ ) {
-        for (int col = 0; col < 20; col++) {
-            std::cout << currentFuelMap[row][col];
-            if (col < 19) {
-                std::cout << ",";
-            }
-        }
-        std::cout << std::endl;
+    if (fuelRequestNumber == 8) {
+        std::cout << "==== Initial Fuel Map ====" << std::endl;
+        printFuelMap(currentFuelMap);
     }
 }
 
-void Apexi::decodeAdv(QByteArray rawmessagedata)
-{
+void Apexi::decodeAdv(QByteArray rawmessagedata) {
     
     fc_adv_info_t* info=reinterpret_cast<fc_adv_info_t*>(rawmessagedata.data());
     if (Model == 1)
@@ -865,8 +989,7 @@ void Apexi::decodeSensor(QByteArray rawmessagedata)
     
 }
 
-void Apexi::decodeAux(QByteArray rawmessagedata)
-{
+void Apexi::decodeAux(QByteArray rawmessagedata) {
     fc_aux_info_t* info=reinterpret_cast<fc_aux_info_t*>(rawmessagedata.data());
     
     
@@ -886,55 +1009,17 @@ void Apexi::decodeAux(QByteArray rawmessagedata)
     m_dashboard->setauxcalc2(AN3AN4calc);
     //qDebug()<< "AN1-AN2" << AN1AN2calc ;
     //qDebug()<< "AN1-AN2" << AN3AN4calc ;
-
-    int rpmIdx = packageMap[0]; // col
-    int loadIdx = packageMap[1];// row
-    
-    // sum afr values
-    loggedSumAfrMap[loadIdx][rpmIdx] += (double) AN3AN4calc; // AN3AN4calc is connected to the wideband
-    loggedNumAfrMap[loadIdx][rpmIdx]++;
-
-    samplesTotal++;
-
-    if (samplesTotal % 10 == 0) {
-        std::cout << "==== Num AFR Map ====" << std::endl;
-        for (int row = 0; row < 20; row++) {
-            for (int col = 0; col < 20; col++) {
-                std::cout << loggedNumAfrMap[row][col];
-                if (col < 19) {
-                    std::cout << ",";
-                }
-            }
-            std::cout << std::endl;
-        }
-        std::cout << "==== Avg AFR Map ====" << std::endl;
-        for (int row = 0; row < 20; row++) {
-            for (int col = 0; col < 20; col++) {
-                std::cout << loggedSumAfrMap[row][col] / loggedNumAfrMap[row][col];
-                if (col < 19) {
-                    std::cout << ",";
-                }
-            }
-            std::cout << std::endl;
-        }
-    }
 }
 
 // Decodes map indices (MapN, MapP)
-void Apexi::decodeMap(QByteArray rawmessagedata)
-{
+void Apexi::decodeMap(QByteArray rawmessagedata) {
     fc_map_info_t* info=reinterpret_cast<fc_map_info_t*>(rawmessagedata.data());
     
     packageMap[0] = mul[0] * info->Map_N + add[0]; // rpm (column)
     packageMap[1] = mul[0] * info->Map_P + add[0]; // load (row)
-
-    if (samplesTotal % 10 == 0) {
-        std::cout << "MapN: " << packageMap[0] << ", MapP: " << packageMap[1] << std::endl;
-    }
-    
 }
-void Apexi::decodeBasic(QByteArray rawmessagedata)
-{
+
+void Apexi::decodeBasic(QByteArray rawmessagedata) {
     fc_Basic_info_t* info=reinterpret_cast<fc_Basic_info_t*>(rawmessagedata.data());
     
     qreal Boost;
