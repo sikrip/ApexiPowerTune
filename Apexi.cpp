@@ -107,8 +107,8 @@ void Apexi::SetProtocol(const int &protocolselect)
     Protocol = protocolselect;
 }
 
-void Apexi::initSerialPort()
-{
+void Apexi::initSerialPort() {
+    qDebug()<< "Init serial port";
   /*
     if (m_serialport)
     {
@@ -134,7 +134,7 @@ void Apexi::clear()
 
 //function to open serial port
 void Apexi::openConnection(const QString &portName) {
-    qDebug()<<"open Apexi";
+    qDebug()<<"Open connection";
     port = portName;
     initSerialPort();
     m_serialport->setPortName(port);
@@ -157,8 +157,8 @@ void Apexi::openConnection(const QString &portName) {
     
     
 }
-void Apexi::closeConnection()
-{
+void Apexi::closeConnection() {
+    qDebug()<<"Close connection";
     disconnect(this->m_serialport,SIGNAL(readyRead()),this,SLOT(readyToRead()));
     disconnect(m_serialport, static_cast<void (QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),
                this, &Apexi::handleError);
@@ -166,12 +166,12 @@ void Apexi::closeConnection()
     disconnect(&m_timer, &QTimer::timeout, this, &Apexi::handleTimeout);
     m_serialport->close();
 }
-void Apexi::retryconnect()
-{
+void Apexi::retryconnect() {
+    qDebug()<<"Retry connection";
     Apexi::openConnection(port);
 }
-void Apexi::handleTimeout()
-{
+void Apexi::handleTimeout() {
+    qDebug()<<"Handle timeout";
     m_dashboard->setTimeoutStat(QString("Is Timeout : Y"));
     m_timer.stop();
     m_serialport->close();
@@ -190,8 +190,8 @@ void Apexi::handleTimeout()
     Apexi::sendRequest(requestIndex);
 }
 
-void Apexi::handleError(QSerialPort::SerialPortError serialPortError)
-{
+void Apexi::handleError(QSerialPort::SerialPortError serialPortError) {
+    qDebug()<<"Handle error " << m_serialport->errorString();
     if (serialPortError == QSerialPort::ReadError) {
         QString fileName = "Errors.txt";
         QFile mFile(fileName);
