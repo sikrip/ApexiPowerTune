@@ -706,7 +706,7 @@ void Apexi::Auxcalc(const QString &unitaux1, const qreal &an1V0, const qreal &an
 /**
  * Calculates the column of fuel map based on the provided fuel request number (1-8).
  */
-int getFuelMapColumn(int fuelRequestNumber) {
+int Apexi::getFuelMapColumn(int fuelRequestNumber) {
     const int numberOfCellsPerRequest = 50;
     const int numberOfCellsPerRow = 20;
     int cells = fuelRequestNumber * numberOfCellsPerRequest;
@@ -730,11 +730,11 @@ void Apexi::decodeFuelMap(int fuelRequestNumber, QByteArray rawmessagedata) {
         currentFuelMap[row][col] = (fuelCellValue->cellValue * 4.0) / 1000.0;
 
         // Initially the new fuel map is equal to the current.
-        newFuelMap = currentFuelMap[row][col];
-
+        newFuelMap[row][col] = currentFuelMap[row][col];
+        
+        // Move to next row and column when as needed
         row++;
         if (row == 20) {
-            // Move to next column
             row = 0;
             col++;
         }
