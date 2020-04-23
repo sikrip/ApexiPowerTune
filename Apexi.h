@@ -57,13 +57,13 @@ private:
     void printFuelMap(double (&map)[20][20]);
     void sendFuelMapWriteRequest();
     void syncFuelTablesAndAfrData();
+    int getFuelMapColumn(int fuelRequestNumber);
 
     struct fc_fuel_map_cell_t{
         quint16 cellValue; // each cell is a two byte short float
         fc_fuel_map_cell_t parse(const QByteArray &);
     };
-    
-    
+
     double packageADV[33];
     
     struct fc_adv_info_t{

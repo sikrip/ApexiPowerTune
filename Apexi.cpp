@@ -708,6 +708,16 @@ void Apexi::Auxcalc(const QString &unitaux1, const qreal &an1V0, const qreal &an
 }
 
 /**
+ * Calculates the column of fuel map based on the provided fuel request number (1-8).
+ */
+int getFuelMapColumn(int fuelRequestNumber) {
+    const int numberOfCellsPerRequest = 50;
+    const int numberOfCellsPerRow = 20;
+    int cells = fuelRequestNumber * numberOfCellsPerRequest;
+    return (cells / numberOfCellsPerRow) - ((fuelRequestNumber % 2) ? 2 : 3);
+}
+
+/**
  * Decodes and stores the fuel map. This is done with batches of 50 cells column by column.
  *
  * @param fuelRequestNumber the number of the fuel map request (1-8)
@@ -715,37 +725,8 @@ void Apexi::Auxcalc(const QString &unitaux1, const qreal &an1V0, const qreal &an
  */
 void Apexi::decodeFuelMap(int fuelRequestNumber, QByteArray rawmessagedata) {
     int row = (fuelRequestNumber % 2 == 1) ? 0 : 10; // 1, 3, 5, 7 start with row 0; 2, 4, 6, 8 start at row 10
-    int col;
-    switch (fuelRequestNumber) {
-        case 1:
-            col = 0;
-            break;
-        case 2:
-            col = 2;
-            break;
-        case 3:
-            col = 5;
-            break;
-        case 4:
-            col = 7;
-            break;
-        case 5:
-            col = 10;
-            break;
-        case 6:
-            col = 12;
-            break;
-        case 7:
-            col = 15;
-            break;
-        case 8:
-            col = 17;
-            break;
-        default:
-            // invalid request number
-            std::cerr << "Invalid fuel map request number: " << fuelRequestNumber << std::endl;
-            return;
-    }
+    int col = getFuelMapColumn(fuelRequestNumber);
+
     // 0 = id, 1 = number of bytes, 2...101 = fuel table payload
     fc_fuel_map_cell_t *fuelCellValue;
     for (int pos = 2; pos <= 100; pos += 2) {
@@ -754,7 +735,7 @@ void Apexi::decodeFuelMap(int fuelRequestNumber, QByteArray rawmessagedata) {
 
         // Initially the new fuel map is equal to the current.
         newFuelMap = currentFuelMap[row][col];
-        
+
         row++;
         if (row == 20) {
             // Move to next column
