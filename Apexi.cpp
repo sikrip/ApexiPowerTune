@@ -409,9 +409,6 @@ int Apexi::calculateNewFuelMap() {
                 const double loggedAvgAfr = loggedSumAfrMap[row][col] / loggedNumAfrMap[row][col];
                 newFuelMap[row][col] = (loggedAvgAfr / targetAFR) * currentFuelMap[row][col];
                 cellsChanged++;
-            } else {
-                // keep the same fuel for this cell
-                newFuelMap[row][col] = currentFuelMap[row][col];
             }
         }
     }
@@ -753,7 +750,12 @@ void Apexi::decodeFuelMap(int fuelRequestNumber, QByteArray rawmessagedata) {
     fc_fuel_map_cell_t *fuelCellValue;
     for (int pos = 2; pos <= 100; pos += 2) {
         fuelCellValue = reinterpret_cast<fc_fuel_map_cell_t *>(rawmessagedata.mid(pos, 2).data());
-        currentFuelMap[row++][col] = (fuelCellValue->cellValue * 4.0) / 1000.0;
+        currentFuelMap[row][col] = (fuelCellValue->cellValue * 4.0) / 1000.0;
+
+        // Initially the new fuel map is equal to the current.
+        newFuelMap = currentFuelMap[row][col];
+        
+        row++;
         if (row == 20) {
             // Move to next column
             row = 0;
@@ -762,6 +764,7 @@ void Apexi::decodeFuelMap(int fuelRequestNumber, QByteArray rawmessagedata) {
     }
 
     if (fuelRequestNumber == 8) {
+        // Last request, entire map should be saved
         std::cout << "==== Initial Fuel Map ====" << std::endl;
         printFuelMap(currentFuelMap);
     }
