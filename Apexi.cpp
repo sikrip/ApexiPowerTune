@@ -308,7 +308,7 @@ bool Apexi::shouldWriteFuelMap() {
             calculateNewFuelMap() >= minCellsChangesForWriteAttempt) {
             // this is the first write request
 
-            qDebug() << "==== Will send the following Fuel Map to PFC ====" << std::endl;
+            qDebug() << "==== Will send the following Fuel Map to PFC ====" << "\n";
             printFuelMap(newFuelMap);
 
             fuelMapWriteRequest = 1;
@@ -363,7 +363,7 @@ void Apexi::printFuelMap(double (&map)[20][20]) {
                 qDebug() << ",";
             }
         }
-        qDebug() << std::endl;
+        qDebug() << "\n";
     }
 }
 
@@ -381,7 +381,7 @@ void Apexi::updateAFRData() {
     loggedNumAfrMap[loadIdx][rpmIdx]++;
 
     if (afrSamplesCount % fuelMapWriteAttemptInterval == 0) {
-        qDebug() << "==== Num AFR Map ====" << std::endl;
+        qDebug() << "==== Num AFR Map ====" << "\n";
         for (int row = 0; row < 20; row++) {
             for (int col = 0; col < 20; col++) {
                 qDebug() << loggedNumAfrMap[row][col];
@@ -389,10 +389,10 @@ void Apexi::updateAFRData() {
                     qDebug() << ",";
                 }
             }
-            qDebug() << std::endl;
+            qDebug() << "\n";
         }
 
-        qDebug() << "==== Avg AFR Map ====" << std::endl;
+        qDebug() << "==== Avg AFR Map ====" << "\n";
         for (int row = 0; row < 20; row++) {
             for (int col = 0; col < 20; col++) {
                 if (loggedNumAfrMap[row][col] > 0) {
@@ -404,7 +404,7 @@ void Apexi::updateAFRData() {
                     qDebug() << ",";
                 }
             }
-            qDebug() << std::endl;
+            qDebug() << "\n";
         }
     }
 }
@@ -756,7 +756,7 @@ void Apexi::decodeFuelMap(int fuelRequestNumber, QByteArray rawmessagedata) {
 
     if (fuelRequestNumber == 8) {
         // Last request, entire map should be saved
-        qDebug() << "==== Initial Fuel Map ====" << std::endl;
+        qDebug() << "==== Initial Fuel Map ====" << "\n";
         printFuelMap(currentFuelMap);
     }
 }
