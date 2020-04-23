@@ -58,6 +58,8 @@ private:
     void sendFuelMapWriteRequest();
     void syncFuelTablesAndAfrData();
     int getFuelMapColumn(int fuelRequestNumber);
+    void decodeResponseAndSendNextRequest(const QByteArray &buffer);
+    void sendPFCRequest(int requestIndex);
 
     struct fc_fuel_map_cell_t{
         quint16 cellValue; // each cell is a two byte short float
@@ -410,8 +412,6 @@ public slots:
     void closeConnection();
     void retryconnect();
     void clear();
-    void apexiECU(const QByteArray &buffer);
-    void sendRequest(int requestIndex);
     void writeRequestPFC(QByteArray);
     void readData(QByteArray rawmessagedata);
     void decodeAdv(QByteArray rawmessagedata);

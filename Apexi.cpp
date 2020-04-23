@@ -174,7 +174,7 @@ void Apexi::openConnection(const QString &portName) {
         qDebug() << "Connected to Serialport";
         m_dashboard->setSerialStat(QString("Connected to Serialport"));
         requestIndex = FIRST_INIT_REQUEST;
-        Apexi::sendRequest(requestIndex);
+        Apexi::sendPFCRequest(requestIndex);
     }
 
 
@@ -209,7 +209,7 @@ void Apexi::handleTimeout() {
     requestIndex = SECOND_INIT_REQUEST;
     m_readData.clear();
 
-    Apexi::sendRequest(requestIndex);
+    Apexi::sendPFCRequest(requestIndex);
 }
 
 void Apexi::handleError(QSerialPort::SerialPortError serialPortError) {
@@ -241,11 +241,11 @@ void Apexi::readyToRead() {
       // Test End
     */
     m_dashboard->setRecvData(QString("Receive Data : " + m_readData.toHex()));
-    Apexi::apexiECU(m_readData);
+    Apexi::decodeResponseAndSendNextRequest(m_readData);
 }
 
 
-void Apexi::apexiECU(const QByteArray &buffer) {
+void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
     m_buffer.append(buffer);
     QByteArray startpattern = m_writeData.left(1);
     QByteArrayMatcher startmatcher(startpattern);
@@ -288,7 +288,7 @@ void Apexi::apexiECU(const QByteArray &buffer) {
                 // New cycle of live data, so update the afr logs with the previous data
                 Apexi::updateAFRData();
             }
-            Apexi::sendRequest(requestIndex);
+            Apexi::sendPFCRequest(requestIndex);
         }
     }
 }
@@ -507,7 +507,6 @@ void Apexi::handleBytesWritten(qint64 bytes) {
     }
 }
 
-// Serial requests are send via Serial
 void Apexi::writeRequestPFC(QByteArray p_request) {
     m_writeData = p_request;
     qint64 bytesWritten = m_serialport->write(p_request);
@@ -521,12 +520,9 @@ void Apexi::writeRequestPFC(QByteArray p_request) {
 
 }
 
-//Power FC requests
-
-void Apexi::sendRequest(int requestIndex) {
-    if (Protocol == 0) {
+void Apexi::sendPFCRequest(int requestIndex) {
+    if (Protocol == 0) { //New Apexi Structure
         switch (requestIndex) {
-            //New Apexi Structure
             case FIRST_INIT_REQUEST:
                 //Init Platform (This returns the Platform String )
                 Apexi::writeRequestPFC(QByteArray::fromHex("F3020A"));
