@@ -1,7 +1,6 @@
 #include "Apexi.h"
 #include "dashboard.h"
 #include "connect.h"
-#include <iostream>
 #include <QTime>
 #include <QTimer>
 #include <QDebug>
@@ -244,12 +243,17 @@ void Apexi::readyToRead() {
     Apexi::decodeResponseAndSendNextRequest(m_readData);
 }
 
-
+/**
+ * Responsible to decode the provided PFC response and send the next request.
+ *
+ * @param buffer the raw PFC response
+ */
 void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
     m_buffer.append(buffer);
     QByteArray startpattern = m_writeData.left(1);
     QByteArrayMatcher startmatcher(startpattern);
 
+    // No idea what is going on here!
     int pos = 0;
     while ((pos = startmatcher.indexIn(m_buffer, pos)) != -1) {
         m_dashboard->setRunStat(m_buffer.toHex());
@@ -293,6 +297,10 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
     }
 }
 
+/**
+ * Decides whether the new fuel map should be sent to PFC.
+ * Also, updates the fuelMapWriteRequest because the map is sent in chunks to the PFC.
+ */
 bool Apexi::shouldWriteFuelMap() {
     if (fuelMapWriteRequest == 0) {
         // not writing (fuelMapWriteRequest == 0) and its time to attempt
@@ -300,7 +308,7 @@ bool Apexi::shouldWriteFuelMap() {
             calculateNewFuelMap() >= minCellsChangesForWriteAttempt) {
             // this is the first write request
 
-            std::cout << "==== Will send the following Fuel Map to PFC ====" << std::endl;
+            qDebug() << "==== Will send the following Fuel Map to PFC ====" << std::endl;
             printFuelMap(newFuelMap);
 
             fuelMapWriteRequest = 1;
@@ -329,7 +337,7 @@ void Apexi::syncFuelTablesAndAfrData() {
         for (int col = 0; col < 20; col++) {
             if (newFuelMap[row][col] != currentFuelMap[row][col]) {
                 currentFuelMap[row][col] = newFuelMap[row][col];
-
+                // for each cell that is written to PFC reset the AFR samples.
                 loggedSumAfrMap[row][col] = 0;
                 loggedNumAfrMap[row][col] = 0;
             }
@@ -337,19 +345,25 @@ void Apexi::syncFuelTablesAndAfrData() {
     }
 }
 
+/**
+ * Depending on the value of fuelMapWriteRequest, sends the relevant map chunk to the PFC.
+ */
 void Apexi::sendFuelMapWriteRequest() {
     // Send write request to pfc based on the fuelMapWriteRequest
 }
 
+/**
+ * Prints out the provided map.
+ */
 void Apexi::printFuelMap(double (&map)[20][20]) {
     for (int row = 0; row < 20; row++) {
         for (int col = 0; col < 20; col++) {
-            std::cout << map[row][col];
+            qDebug() << map[row][col];
             if (col < 19) {
-                std::cout << ",";
+                qDebug() << ",";
             }
         }
-        std::cout << std::endl;
+        qDebug() << std::endl;
     }
 }
 
@@ -367,30 +381,30 @@ void Apexi::updateAFRData() {
     loggedNumAfrMap[loadIdx][rpmIdx]++;
 
     if (afrSamplesCount % fuelMapWriteAttemptInterval == 0) {
-        std::cout << "==== Num AFR Map ====" << std::endl;
+        qDebug() << "==== Num AFR Map ====" << std::endl;
         for (int row = 0; row < 20; row++) {
             for (int col = 0; col < 20; col++) {
-                std::cout << loggedNumAfrMap[row][col];
+                qDebug() << loggedNumAfrMap[row][col];
                 if (col < 19) {
-                    std::cout << ",";
+                    qDebug() << ",";
                 }
             }
-            std::cout << std::endl;
+            qDebug() << std::endl;
         }
 
-        std::cout << "==== Avg AFR Map ====" << std::endl;
+        qDebug() << "==== Avg AFR Map ====" << std::endl;
         for (int row = 0; row < 20; row++) {
             for (int col = 0; col < 20; col++) {
                 if (loggedNumAfrMap[row][col] > 0) {
-                    std::cout << loggedSumAfrMap[row][col] / loggedNumAfrMap[row][col];
+                    qDebug() << loggedSumAfrMap[row][col] / loggedNumAfrMap[row][col];
                 } else {
-                    std::cout << "-";
+                    qDebug() << "-";
                 }
                 if (col < 19) {
-                    std::cout << ",";
+                    qDebug() << ",";
                 }
             }
-            std::cout << std::endl;
+            qDebug() << std::endl;
         }
     }
 }
@@ -742,7 +756,7 @@ void Apexi::decodeFuelMap(int fuelRequestNumber, QByteArray rawmessagedata) {
 
     if (fuelRequestNumber == 8) {
         // Last request, entire map should be saved
-        std::cout << "==== Initial Fuel Map ====" << std::endl;
+        qDebug() << "==== Initial Fuel Map ====" << std::endl;
         printFuelMap(currentFuelMap);
     }
 }
