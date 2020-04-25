@@ -1,6 +1,7 @@
 #include "Apexi.h"
 #include "dashboard.h"
 #include "connect.h"
+#include "ApexuFuelMap.h"
 #include <QTime>
 #include <QTimer>
 #include <QDebug>
@@ -111,19 +112,6 @@ qreal advboost;
 double mul[80] = FC_INFO_MUL;  // required values for calculation from raw to readable values for Advanced Sensor info
 double add[] = FC_INFO_ADD;
 
-// The fuel map currently in the PFC
-double currentFuelMap[20/* rows */][20/* cols */];
-double newFuelMap[20/* rows */][20/* cols */];
-double loggedSumAfrMap[20/* rows */][20/* cols */];
-double loggedNumAfrMap[20/* rows */][20/* cols */];
-long afrSamplesCount = 0;
-int fuelMapWriteAttemptInterval = 100; // attempt to write the fuel map each 100 afr samples
-int minCellsChangesForWriteAttempt = 5; // require at least this number of cell changes to attempt a fuel map write
-int minSamples = 10; // TODO should be table
-double targetAFR = 14.7; // TODO should be table
-int fuelMapWriteRequest = 0; // 0 means do not write, for 1..fuelMapMaxRequests the fuel map should be sent to PFC
-int fuelMapMaxRequests = 2; // should be 8 for full map write, for now keep it 2 in order to write only the first part of the map
-
 Apexi::Apexi(QObject *parent)
         : QObject(parent), m_dashboard(Q_NULLPTR) {
 }
@@ -151,7 +139,6 @@ void Apexi::initSerialPort() {
 void Apexi::clear() {
     m_serialport->clear();
 }
-
 
 //function to open serial port
 void Apexi::openConnection(const QString &portName) {
@@ -225,7 +212,6 @@ void Apexi::handleError(QSerialPort::SerialPortError serialPortError) {
     }
 }
 
-
 void Apexi::readyToRead() {
     m_readData = m_serialport->readAll();
     /*
@@ -279,9 +265,12 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         readData(m_apexiMsg);
         m_apexiMsg.clear();
 
-        if (Apexi::shouldWriteFuelMap()) {
-            sendFuelMapWriteRequest();
-        } else { // Send next read request
+        if (handleNextFuelMapWriteRequest()) {
+            // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
+            Apexi::writeRequestPFC(QByteArray::fromHex(getCurrentNewFuelMapWritePacket());
+            expectedbytes = 3; // ack packet (0xF2 0x02 0x0B) is expected
+            //TODO should verify that the ack packet is actually received
+        } else {
             // Decide the next request to be sent to PFC
             if (requestIndex < AUX_REQUEST) {
                 // Once go through all requests (init, sensor strings, init, fuel map, adv data, map idx, sensor data, basic data, aux)
@@ -290,146 +279,17 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
                 // then cycle through live data requests ADV_DATA_REQUEST..AUX_REQUEST (adv data, map idx, sensor data, basic data, aux)
                 requestIndex = ADV_DATA_REQUEST;
                 // New cycle of live data, so update the afr logs with the previous data
-                Apexi::updateAFRData();
+                const int rpmIdx = packageMap[0]; // col MapN
+                const int loadIdx = packageMap[1];// row MapP
+                const double afr = (double) AN3AN4calc; // wideband is connected to An3-AN4
+                updateAFRData(rpmIdx, loadIdx, afr);
             }
             Apexi::sendPFCRequest(requestIndex);
         }
     }
 }
 
-/**
- * Decides whether the new fuel map should be sent to PFC.
- * Also, updates the fuelMapWriteRequest because the map is sent in chunks to the PFC.
- */
-bool Apexi::shouldWriteFuelMap() {
-    if (fuelMapWriteRequest == 0) {
-        // not writing (fuelMapWriteRequest == 0) and its time to attempt
-        if (afrSamplesCount % fuelMapWriteAttemptInterval == 0 &&
-            calculateNewFuelMap() >= minCellsChangesForWriteAttempt) {
-            // this is the first write request
-
-            qDebug() << "==== Will send the following Fuel Map to PFC ====" << "\n";
-            printFuelMap(newFuelMap);
-
-            fuelMapWriteRequest = 1;
-            return true;
-        } else {
-            return false;
-        }
-    } else if (fuelMapWriteRequest >= fuelMapMaxRequests) {
-        // this was the last write request
-        syncFuelTablesAndAfrData();
-        fuelMapWriteRequest = 0;
-        return false;
-    } else {
-        // fuelMapWriteRequest = 1..fuelMapMaxRequests, continue with the next fuel write request
-        fuelMapWriteRequest++;
-        return true;
-    }
-}
-
-/**
- * Copies the newFuelMap to the currentFuelMap and resets the AFR samples where needed.
- * To be used after sending the newFuelMap to PFC.
- */
-void Apexi::syncFuelTablesAndAfrData() {
-    for (int row = 0; row < 20; row++) {
-        for (int col = 0; col < 20; col++) {
-            if (newFuelMap[row][col] != currentFuelMap[row][col]) {
-                currentFuelMap[row][col] = newFuelMap[row][col];
-                // for each cell that is written to PFC reset the AFR samples.
-                loggedSumAfrMap[row][col] = 0;
-                loggedNumAfrMap[row][col] = 0;
-            }
-        }
-    }
-}
-
-/**
- * Depending on the value of fuelMapWriteRequest, sends the relevant map chunk to the PFC.
- */
-void Apexi::sendFuelMapWriteRequest() {
-    // Send write request to pfc based on the fuelMapWriteRequest
-}
-
-/**
- * Prints out the provided map.
- */
-void Apexi::printFuelMap(double (&map)[20][20]) {
-    for (int row = 0; row < 20; row++) {
-        for (int col = 0; col < 20; col++) {
-            qDebug() << map[row][col];
-            if (col < 19) {
-                qDebug() << ",";
-            }
-        }
-        qDebug() << "\n";
-    }
-}
-
-void Apexi::updateAFRData() {
-    afrSamplesCount++;
-
-    // TODO if (rmp > 500 && temp > 75)
-
-    int rpmIdx = packageMap[0]; // col MapN
-    int loadIdx = packageMap[1];// row MapP
-
-    // sum afr values
-    loggedSumAfrMap[loadIdx][rpmIdx] += (double) AN3AN4calc; // AN3AN4calc is connected to the wideband
-    // advance number of samples on cell
-    loggedNumAfrMap[loadIdx][rpmIdx]++;
-
-    if (afrSamplesCount % fuelMapWriteAttemptInterval == 0) {
-        qDebug() << "==== Num AFR Map ====" << "\n";
-        for (int row = 0; row < 20; row++) {
-            for (int col = 0; col < 20; col++) {
-                qDebug() << loggedNumAfrMap[row][col];
-                if (col < 19) {
-                    qDebug() << ",";
-                }
-            }
-            qDebug() << "\n";
-        }
-
-        qDebug() << "==== Avg AFR Map ====" << "\n";
-        for (int row = 0; row < 20; row++) {
-            for (int col = 0; col < 20; col++) {
-                if (loggedNumAfrMap[row][col] > 0) {
-                    qDebug() << loggedSumAfrMap[row][col] / loggedNumAfrMap[row][col];
-                } else {
-                    qDebug() << "-";
-                }
-                if (col < 19) {
-                    qDebug() << ",";
-                }
-            }
-            qDebug() << "\n";
-        }
-    }
-}
-
-/**
- * Calculates the new fuel map based on the logged AFR.
- *
- * @return the number of cells that have changed in the new map
- */
-int Apexi::calculateNewFuelMap() {
-    int cellsChanged = 0;
-    for (int row = 0; row < 20; row++) {
-        for (int col = 0; col < 20; col++) {
-            if (loggedNumAfrMap[row][col] >= minSamples) {
-                // enough samples logged; re-calc fuel
-                const double loggedAvgAfr = loggedSumAfrMap[row][col] / loggedNumAfrMap[row][col];
-                newFuelMap[row][col] = (loggedAvgAfr / targetAFR) * currentFuelMap[row][col];
-                cellsChanged++;
-            }
-        }
-    }
-    return cellsChanged;
-}
-
-
+// TODO should be decodeData
 void Apexi::readData(QByteArray rawmessagedata) {
     if (rawmessagedata.length()) {
         //Power FC Decode
@@ -475,28 +335,28 @@ void Apexi::readData(QByteArray rawmessagedata) {
                 }
                 break;
             case ID::FuelMapBatch1:
-                Apexi::decodeFuelMap(1, rawmessagedata);
+                readFuelMap(1, rawmessagedata.toStdString());
                 break;
             case ID::FuelMapBatch2:
-                Apexi::decodeFuelMap(2, rawmessagedata);
+                readFuelMap(2, rawmessagedata.toStdString());
                 break;
             case ID::FuelMapBatch3:
-                Apexi::decodeFuelMap(3, rawmessagedata);
+                readFuelMap(3, rawmessagedata.toStdString());
                 break;
             case ID::FuelMapBatch4:
-                Apexi::decodeFuelMap(4, rawmessagedata);
+                readFuelMap(4, rawmessagedata.toStdString());
                 break;
             case ID::FuelMapBatch5:
-                Apexi::decodeFuelMap(5, rawmessagedata);
+                readFuelMap(5, rawmessagedata.toStdString());
                 break;
             case ID::FuelMapBatch6:
-                Apexi::decodeFuelMap(6, rawmessagedata);
+                readFuelMap(6, rawmessagedata.toStdString());
                 break;
             case ID::FuelMapBatch7:
-                Apexi::decodeFuelMap(7, rawmessagedata);
+                readFuelMap(7, rawmessagedata.toStdString());
                 break;
             case ID::FuelMapBatch8:
-                Apexi::decodeFuelMap(8, rawmessagedata);
+                readFuelMap(8, rawmessagedata.toStdString());
                 break;
                 /*
             case ID::Version:
@@ -506,12 +366,8 @@ void Apexi::readData(QByteArray rawmessagedata) {
             default:
                 break;
         }
-
-
     }
     rawmessagedata.clear();
-
-
 }
 
 void Apexi::handleBytesWritten(qint64 bytes) {
@@ -704,7 +560,6 @@ void Apexi::sendPFCRequest(int requestIndex) {
     m_timer.start(700); //Set timout to 700 mseconds 
 }
 
-
 void Apexi::Auxcalc(const QString &unitaux1, const qreal &an1V0, const qreal &an2V5, const QString &unitaux2,
                     const qreal &an3V0, const qreal &an4V5) {
     qreal aux1min = an1V0;
@@ -715,50 +570,6 @@ void Apexi::Auxcalc(const QString &unitaux1, const qreal &an1V0, const qreal &an
     QString Auxunit2 = unitaux2;
 
     Apexi::calculatorAux(aux1min, aux2max, aux3min, aux4max, Auxunit1, Auxunit2);
-}
-
-/**
- * Calculates the column of fuel map based on the provided fuel request number (1-8).
- */
-int Apexi::getFuelMapColumn(int fuelRequestNumber) {
-    const int numberOfCellsPerRequest = 50;
-    const int numberOfCellsPerRow = 20;
-    int cells = fuelRequestNumber * numberOfCellsPerRequest;
-    return (cells / numberOfCellsPerRow) - ((fuelRequestNumber % 2) ? 2 : 3);
-}
-
-/**
- * Decodes and stores the fuel map. This is done with batches of 50 cells column by column.
- *
- * @param fuelRequestNumber the number of the fuel map request (1-8)
- * @param rawmessagedata the raw PFC cell data
- */
-void Apexi::decodeFuelMap(int fuelRequestNumber, QByteArray rawmessagedata) {
-    int row = (fuelRequestNumber % 2 == 1) ? 0 : 10; // 1, 3, 5, 7 start with row 0; 2, 4, 6, 8 start at row 10
-    int col = getFuelMapColumn(fuelRequestNumber);
-
-    // 0 = id, 1 = number of bytes, 2...101 = fuel table payload
-    fc_fuel_map_cell_t *fuelCellValue;
-    for (int pos = 2; pos <= 100; pos += 2) {
-        fuelCellValue = reinterpret_cast<fc_fuel_map_cell_t *>(rawmessagedata.mid(pos, 2).data());
-        currentFuelMap[row][col] = (fuelCellValue->cellValue * 4.0) / 1000.0;
-
-        // Initially the new fuel map is equal to the current.
-        newFuelMap[row][col] = currentFuelMap[row][col];
-        
-        // Move to next row and column when as needed
-        row++;
-        if (row == 20) {
-            row = 0;
-            col++;
-        }
-    }
-
-    if (fuelRequestNumber == 8) {
-        // Last request, entire map should be saved
-        qDebug() << "==== Initial Fuel Map ====" << "\n";
-        printFuelMap(currentFuelMap);
-    }
 }
 
 void Apexi::decodeAdv(QByteArray rawmessagedata) {
@@ -923,7 +734,6 @@ void Apexi::decodeAdv(QByteArray rawmessagedata) {
         m_dashboard->setSpeed(packageADV3[14]);
     }
 }
-
 
 void Apexi::decodeSensor(QByteArray rawmessagedata) {
     fc_sens_info_t *info = reinterpret_cast<fc_sens_info_t *>(rawmessagedata.data());
