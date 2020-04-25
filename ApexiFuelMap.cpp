@@ -1,6 +1,4 @@
 #include "ApexuFuelMap.h"
-#include <iostream>
-#include <iomanip>
 #include <stdexcept>
 
 using namespace std;
@@ -93,23 +91,23 @@ int getFuelMapColumn(int fuelRequestNumber) {
  * @param fuelRequestNumber defines the part of the map to be read
  * @param rawData the PFC raw map data
  */
-void readFuelMap(int fuelRequestNumber, const string& rawData) {
+void readFuelMap(int fuelRequestNumber, const char rawData[]) {
     int row = getFuelMapRow(fuelRequestNumber);
     int col = getFuelMapColumn(fuelRequestNumber);
 
     // 0 = id, 1 = number of bytes, 2...101 = fuel table payload
-    unsigned char packetId = (unsigned char) strtol(rawData.substr(0, 2).c_str(), nullptr, 16);
+    unsigned char packetId = rawData[0];
     if (packetId != 0xB0 + (fuelRequestNumber - 1)) {
         throw std::invalid_argument("Invalid packet id for fuel map read request");
     }
-    unsigned char packetLength = (unsigned char ) strtol(rawData.substr(2, 2).c_str(), nullptr, 16);
-    if (packetLength != 102) {
+    unsigned char packetLength = rawData[1];
+    if (packetLength != 102) {// the packet length does not contain the id
         throw std::invalid_argument("Invalid packet length for fuel map read request");
     }
 
-    for (unsigned int i = 4; i < rawData.length() - 4; i += 4) {
-        unsigned char byte1 = (unsigned char) strtol(rawData.substr(i, 2).c_str(), nullptr, 16);
-        unsigned char byte2 = (unsigned char) strtol(rawData.substr(i + 2, 2).c_str(), nullptr, 16);
+    for (unsigned int i = 2; i < 102; i += 2) {
+        unsigned char byte1 = rawData[i];
+        unsigned char byte2 = rawData[i + 1];
 
         int fuelCellValue = (byte2 << 8) + byte1; // two byte big endian
         double humanFuelValue = (fuelCellValue * 4.0) / 1000.0;
@@ -132,7 +130,7 @@ void readFuelMap(int fuelRequestNumber, const string& rawData) {
  * The new fuel map is used to create the requests.
  * An ack packet (0xF2 0x02 0x0B) is expected after this is sent to PFC.
  */
-string getCurrentNewFuelMapWritePacket() {
+char* getNextFuelMapWritePacket() {
     return createFuelMapWritePacket(fuelMapWriteRequest, newFuelMap);
 }
 
@@ -145,30 +143,34 @@ string getCurrentNewFuelMapWritePacket() {
  * @param map the fuel map to send
  * @return the write packet for sending the fuel map to PFC
  */
-string createFuelMapWritePacket(int fuelRequestNumber, double (&map)[FUEL_TABLE_SIZE][FUEL_TABLE_SIZE]) {
+char* createFuelMapWritePacket(int fuelRequestNumber, double (&map)[FUEL_TABLE_SIZE][FUEL_TABLE_SIZE]) {
+
     int row = getFuelMapRow(fuelRequestNumber);
     int col = getFuelMapColumn(fuelRequestNumber);
-
     union {
         int celValue;
-        unsigned char celValueBytes[2];
+        char celValueBytes[2];
     } fuelCell{};
 
-    const int requestId = (0xB0 + (fuelRequestNumber - 1));
-    const int packetSize = 102;
-    unsigned char checksum = 255 - requestId - packetSize;
+    char* pfcDataPacket = new char[103];
 
-    stringstream requestHexBuilder;
-    requestHexBuilder << hex << setw(2) << setfill('0') << requestId << hex << setw(2) << setfill('0') << packetSize;
+    const char requestId = (char)(0xB0 + (fuelRequestNumber - 1));
+    const char packetSize = 102;
+    char checksum = (char)(255 - requestId - packetSize);
+
+    pfcDataPacket[0] = requestId;
+    pfcDataPacket[1] = packetSize;
 
     int cellsWritenCount = 0;
+    int dataIdx = 2;
     while(cellsWritenCount < FUEL_CELLS_PER_REQUEST) {
         // from human readable format to PFC format
         fuelCell.celValue = (int)((map[row][col] * 1000.0) / 4.0);
-        for (unsigned char celValueByte : fuelCell.celValueBytes) {
-            checksum -= celValueByte;
-            requestHexBuilder << hex << setw(2) << setfill('0') << (int) celValueByte;
-        }
+        pfcDataPacket[dataIdx++] = fuelCell.celValueBytes[0];
+        pfcDataPacket[dataIdx++] = fuelCell.celValueBytes[1];
+
+        checksum -= fuelCell.celValueBytes[0];
+        checksum -= fuelCell.celValueBytes[1];
 
         // Move to next row/col
         row++;
@@ -179,10 +181,9 @@ string createFuelMapWritePacket(int fuelRequestNumber, double (&map)[FUEL_TABLE_
         // move to next table cell
         cellsWritenCount++;
     }
-    requestHexBuilder << hex << setw(2) << setfill('0') << (int)checksum;
-    string requestHex = requestHexBuilder.str();
+    pfcDataPacket[dataIdx] = checksum;
 
-    return requestHex;
+    return pfcDataPacket;
 }
 
 /**
@@ -303,4 +304,3 @@ double getCurrentFuel(int row, int col) {
 double getNewFuel(int row, int col){
     return newFuelMap[row][col];
 }
-

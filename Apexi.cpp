@@ -267,7 +267,7 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
 
         if (handleNextFuelMapWriteRequest()) {
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
-            Apexi::writeRequestPFC(QByteArray::fromHex(getCurrentNewFuelMapWritePacket());
+            Apexi::writeRequestPFC(QByteArray::fromRawData(getNextFuelMapWritePacket(), 103));
             expectedbytes = 3; // ack packet (0xF2 0x02 0x0B) is expected
             //TODO should verify that the ack packet is actually received
         } else {
