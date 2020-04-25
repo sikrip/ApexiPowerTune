@@ -43,7 +43,7 @@ HEADERS += \
     gps.h \
     sensors.h \
     datalogger.h \
-    ApexuFuelMap.h \ 
+    ApexuFuelMap.h \
     Apexi.h \
     AdaptronicSelect.h \
     connect.h \
