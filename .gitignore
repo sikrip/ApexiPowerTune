@@ -13,3 +13,5 @@ daemons/DataLog\.csv
 PowertuneQMLGui\.pro\.user\.d437017\.20
 
 *.autosave
+
+/.idea
