@@ -418,7 +418,7 @@ public
 
     void writeRequestPFC(QByteArray);
 
-    void readData(QByteArray rawmessagedata);
+    void decodePfcData(QByteArray rawmessagedata);
 
     void decodeAdv(QByteArray rawmessagedata);
 

@@ -262,7 +262,7 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         m_timer.stop();
 
         // Decode current data
-        readData(m_apexiMsg);
+        decodePfcData(m_apexiMsg);
         m_apexiMsg.clear();
 
         if (handleNextFuelMapWriteRequest()) {
@@ -290,7 +290,7 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
 }
 
 // TODO should be decodeData
-void Apexi::readData(QByteArray rawmessagedata) {
+void Apexi::decodePfcData(QByteArray rawmessagedata) {
     if (rawmessagedata.length()) {
         //Power FC Decode
         quint8 requesttype = rawmessagedata[0];
