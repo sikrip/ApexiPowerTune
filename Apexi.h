@@ -430,8 +430,6 @@ public
 
     void decodeBasic(QByteArray rawmessagedata);
 
-    void decodeFuelMap(int batchNumber, QByteArray rawmessagedata);
-
     // void decodeVersion(QByteArray rawmessagedata);
     void decodeInit(QByteArray rawmessagedata);
 
