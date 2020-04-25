@@ -266,6 +266,7 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         m_apexiMsg.clear();
 
         // TODO remove this after fuel map write is verified
+        qDebug() << "Sending sample fuel map...";
         enableSampleFuelMapWrite();
         if (handleNextFuelMapWriteRequest()) {
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
@@ -359,6 +360,16 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
                 break;
             case ID::FuelMapBatch8:
                 readFuelMap(8, rawmessagedata.data());
+                qDebug() << "Read the following fuel map\n";
+                for(int r=0; r<20; r++) {
+                    for(int c=0; c<20; c++) {
+                        qDebug() << getCurrentFuel(r, c)
+                        if (c < 19 ) {
+                            qDebug() << ",";
+                        }
+                    }
+                    qDebug() << "\n";
+                }
                 break;
                 /*
             case ID::Version:
