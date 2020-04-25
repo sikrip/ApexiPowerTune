@@ -63,6 +63,37 @@ int minCellsChangesForWriteAttempt = 5;
 int mapWriteCount = 0;
 
 /**
+ * Flag indicating the the sample fuel map should be sent to PFC.
+ */
+bool writeSampleMap = false;
+
+/**
+ * The sample fuel map.
+ */
+double sampleFuelMap[20][20] = {
+        {1.0,1.1,1.2,1.3,1.5,1.6,1.8,2.0,2.2,2.4,2.6,2.9,3.2,3.5,3.8,4.2,4.6,5.1,5.6,6.2},
+        {1.1,1.2,1.3,1.4,1.6,1.7,1.9,2.1,2.3,2.5,2.7,3.0,3.3,3.7,4.0,4.4,4.9,5.4,5.9,6.5},
+        {1.1,1.2,1.3,1.5,1.6,1.8,2.0,2.2,2.4,2.6,2.9,3.2,3.5,3.8,4.2,4.6,5.1,5.6,6.2,6.8},
+        {1.2,1.3,1.4,1.6,1.7,1.9,2.1,2.3,2.5,2.8,3.0,3.3,3.7,4.0,4.4,4.9,5.4,5.9,6.5,7.1},
+        {1.2,1.3,1.5,1.6,1.8,2.0,2.2,2.4,2.6,2.9,3.2,3.5,3.8,4.2,4.7,5.1,5.6,6.2,6.8,7.5},
+        {1.3,1.4,1.6,1.7,1.9,2.1,2.3,2.5,2.8,3.0,3.3,3.7,4.0,4.4,4.9,5.4,5.9,6.5,7.2,7.9},
+        {1.3,1.5,1.6,1.8,2.0,2.2,2.4,2.6,2.9,3.2,3.5,3.9,4.2,4.7,5.1,5.6,6.2,6.8,7.5,8.3},
+        {1.4,1.6,1.7,1.9,2.1,2.3,2.5,2.8,3.0,3.3,3.7,4.1,4.5,4.9,5.4,5.9,6.5,7.2,7.9,8.7},
+        {1.5,1.6,1.8,2.0,2.2,2.4,2.6,2.9,3.2,3.5,3.9,4.3,4.7,5.1,5.7,6.2,6.9,7.5,8.3,9.1},
+        {1.6,1.7,1.9,2.1,2.3,2.5,2.8,3.1,3.4,3.7,4.1,4.5,4.9,5.4,5.9,6.5,7.2,7.9,8.7,9.6},
+        {1.6,1.8,2.0,2.2,2.4,2.6,2.9,3.2,3.5,3.9,4.3,4.7,5.2,5.7,6.2,6.9,7.6,8.3,9.1,10.1},
+        {1.7,1.9,2.1,2.3,2.5,2.8,3.1,3.4,3.7,4.1,4.5,4.9,5.4,6.0,6.6,7.2,7.9,8.7,9.6,10.6},
+        {1.8,2.0,2.2,2.4,2.7,2.9,3.2,3.5,3.9,4.3,4.7,5.2,5.7,6.3,6.9,7.6,8.3,9.2,10.1,11.1},
+        {1.9,2.1,2.3,2.5,2.8,3.1,3.4,3.7,4.1,4.5,4.9,5.4,6.0,6.6,7.2,7.9,8.7,9.6,10.6,11.6},
+        {2.0,2.2,2.4,2.7,2.9,3.2,3.5,3.9,4.3,4.7,5.2,5.7,6.3,6.9,7.6,8.3,9.2,10.1,11.1,12.2},
+        {2.1,2.3,2.5,2.8,3.1,3.4,3.7,4.1,4.5,4.9,5.4,6.0,6.6,7.2,8.0,8.8,9.6,10.6,11.7,12.8},
+        {2.2,2.4,2.7,2.9,3.2,3.5,3.9,4.3,4.7,5.2,5.7,6.3,6.9,7.6,8.4,9.2,10.1,11.1,12.2,13.5},
+        {2.3,2.5,2.8,3.1,3.4,3.7,4.1,4.5,5.0,5.5,6.0,6.6,7.3,8.0,8.8,9.7,10.6,11.7,12.9,14.1},
+        {2.4,2.7,2.9,3.2,3.6,3.9,4.3,4.7,5.2,5.7,6.3,6.9,7.6,8.4,9.2,10.1,11.2,12.3,13.5,14.9},
+        {2.5,2.8,3.1,3.4,3.7,4.1,4.5,5.0,5.5,6.0,6.6,7.3,8.0,8.8,9.7,10.7,11.7,12.9,14.2,15.6}
+};
+
+/**
  * Calculates the row of fuel map based on the provided fuel request number (1-FUEL_MAP_TOTAL_REQUESTS).
  *
  * @param fuelRequestNumber the fuel request number (1..FUEL_MAP_TOTAL_REQUESTS)
@@ -127,16 +158,6 @@ void readFuelMap(int fuelRequestNumber, const char rawData[]) {
 
 /**
  * Creates a PFC write packet containing the fuel map portion that corresponds to the given request number.
- * The new fuel map is used to create the requests.
- * An ack packet (0xF2 0x02 0x0B) is expected after this is sent to PFC.
- */
-char* getNextFuelMapWritePacket() {
-    return createFuelMapWritePacket(fuelMapWriteRequest, newFuelMap);
-}
-
-/**
- * FIXME should be private, exposed only in order to send a sample map
- * Creates a PFC write packet containing the fuel map portion that corresponds to the given request number.
  * An ack packet (0xF2 0x02 0x0B) is expected after this is sent to PFC.
  *
  * @param fuelRequestNumber the request number for the fuel map (1..FUEL_MAP_TOTAL_REQUESTS)
@@ -184,6 +205,16 @@ char* createFuelMapWritePacket(int fuelRequestNumber, double (&map)[FUEL_TABLE_S
     pfcDataPacket[dataIdx] = checksum;
 
     return pfcDataPacket;
+}
+
+/**
+ * Creates a PFC write packet containing the fuel map portion that corresponds to the given request number.
+ * The new fuel map is used to create the requests.
+ * An ack packet (0xF2 0x02 0x0B) is expected after this is sent to PFC.
+ */
+char* getNextFuelMapWritePacket() {
+    return writeSampleMap ? createFuelMapWritePacket(fuelMapWriteRequest, sampleFuelMap) :
+            createFuelMapWritePacket(fuelMapWriteRequest, newFuelMap);
 }
 
 /**
@@ -256,14 +287,21 @@ void syncFuelTablesAndAfrData() {
 }
 
 /**
+ * Enables the sample map to be sent to PFC.
+ */
+void enableSampleFuelMapWrite() {
+    writeSampleMap = true;
+}
+
+/**
  * Decides whether the new fuel map should be sent to PFC.
  * Also, updates the fuelMapWriteRequest because the map is sent in chunks to the PFC.
  */
 bool handleNextFuelMapWriteRequest() {
     if (fuelMapWriteRequest == 0) {
         // not writing (fuelMapWriteRequest == 0) and its time to attempt
-        if (afrSamplesCount % fuelMapWriteAttemptInterval == 0 &&
-            calculateNewFuelMap() >= minCellsChangesForWriteAttempt) {
+        if (writeSampleMap || (afrSamplesCount % fuelMapWriteAttemptInterval == 0 &&
+            calculateNewFuelMap() >= minCellsChangesForWriteAttempt)) {
             // this is the first write request of this cycle
             fuelMapWriteRequest = 1;
 
@@ -277,6 +315,9 @@ bool handleNextFuelMapWriteRequest() {
         // this was the last write request
         syncFuelTablesAndAfrData();
         fuelMapWriteRequest = 0;
+        if (writeSampleMap) {
+            writeSampleMap = false;
+        }
         return false;
     } else {
         // fuelMapWriteRequest = 1..FUEL_MAP_TOTAL_REQUESTS, continue with the next fuel write request

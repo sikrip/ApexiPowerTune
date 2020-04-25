@@ -265,6 +265,8 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         decodePfcData(m_apexiMsg);
         m_apexiMsg.clear();
 
+        // TODO remove this after fuel map write is verified
+        enableSampleFuelMapWrite();
         if (handleNextFuelMapWriteRequest()) {
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
             Apexi::writeRequestPFC(QByteArray::fromRawData(getNextFuelMapWritePacket(), 103));
