@@ -335,28 +335,28 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
                 }
                 break;
             case ID::FuelMapBatch1:
-                readFuelMap(1, rawmessagedata.toStdString());
+                readFuelMap(1, rawmessagedata.data());
                 break;
             case ID::FuelMapBatch2:
-                readFuelMap(2, rawmessagedata.toStdString());
+                readFuelMap(2, rawmessagedata.data());
                 break;
             case ID::FuelMapBatch3:
-                readFuelMap(3, rawmessagedata.toStdString());
+                readFuelMap(3, rawmessagedata.data());
                 break;
             case ID::FuelMapBatch4:
-                readFuelMap(4, rawmessagedata.toStdString());
+                readFuelMap(4, rawmessagedata.data());
                 break;
             case ID::FuelMapBatch5:
-                readFuelMap(5, rawmessagedata.toStdString());
+                readFuelMap(5, rawmessagedata.data());
                 break;
             case ID::FuelMapBatch6:
-                readFuelMap(6, rawmessagedata.toStdString());
+                readFuelMap(6, rawmessagedata.data());
                 break;
             case ID::FuelMapBatch7:
-                readFuelMap(7, rawmessagedata.toStdString());
+                readFuelMap(7, rawmessagedata.data());
                 break;
             case ID::FuelMapBatch8:
-                readFuelMap(8, rawmessagedata.toStdString());
+                readFuelMap(8, rawmessagedata.data());
                 break;
                 /*
             case ID::Version:
