@@ -363,7 +363,7 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
                 qDebug() << "Read the following fuel map\n";
                 for(int r=0; r<20; r++) {
                     for(int c=0; c<20; c++) {
-                        qDebug() << getCurrentFuel(r, c)
+                        qDebug() << getCurrentFuel(r, c);
                         if (c < 19 ) {
                             qDebug() << ",";
                         }
