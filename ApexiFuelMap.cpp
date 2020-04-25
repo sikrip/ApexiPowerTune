@@ -63,9 +63,10 @@ int minCellsChangesForWriteAttempt = 5;
 int mapWriteCount = 0;
 
 /**
- * Flag indicating the the sample fuel map should be sent to PFC.
+ * In this mode the sample map will be sent to PFC only once.
+ * When this is enabled autotune is disabled.
  */
-bool writeSampleMap = false;
+bool sampleFuelMapMode = false;
 
 /**
  * The sample fuel map.
@@ -213,8 +214,8 @@ char* createFuelMapWritePacket(int fuelRequestNumber, double (&map)[FUEL_TABLE_S
  * An ack packet (0xF2 0x02 0x0B) is expected after this is sent to PFC.
  */
 char* getNextFuelMapWritePacket() {
-    return writeSampleMap ? createFuelMapWritePacket(fuelMapWriteRequest, sampleFuelMap) :
-            createFuelMapWritePacket(fuelMapWriteRequest, newFuelMap);
+    return sampleFuelMapMode ? createFuelMapWritePacket(fuelMapWriteRequest, sampleFuelMap) :
+           createFuelMapWritePacket(fuelMapWriteRequest, newFuelMap);
 }
 
 /**
@@ -287,10 +288,19 @@ void syncFuelTablesAndAfrData() {
 }
 
 /**
- * Enables the sample map to be sent to PFC.
+ * Enables the sample fuel map mode where no autotune is done and the sample fuel map
+ * is sent once to PFC.
  */
-void enableSampleFuelMapWrite() {
-    writeSampleMap = true;
+void enableSampleFuelMapMode() {
+    sampleFuelMapMode = true;
+}
+
+/**
+ * Disables the sample fuel map mode.
+ * Autotune will be active after this is called.
+ */
+void disableSampleFuelMapMode() {
+    sampleFuelMapMode = false;
 }
 
 /**
@@ -298,9 +308,13 @@ void enableSampleFuelMapWrite() {
  * Also, updates the fuelMapWriteRequest because the map is sent in chunks to the PFC.
  */
 bool handleNextFuelMapWriteRequest() {
+    if (sampleFuelMapMode && fuelMapWriteRequest == -1) {
+        // sample map is sent only once
+        return false;
+    }
     if (fuelMapWriteRequest == 0) {
         // not writing (fuelMapWriteRequest == 0) and its time to attempt
-        if (writeSampleMap || (afrSamplesCount % fuelMapWriteAttemptInterval == 0 &&
+        if (sampleFuelMapMode || (afrSamplesCount % fuelMapWriteAttemptInterval == 0 &&
             calculateNewFuelMap() >= minCellsChangesForWriteAttempt)) {
             // this is the first write request of this cycle
             fuelMapWriteRequest = 1;
@@ -314,9 +328,12 @@ bool handleNextFuelMapWriteRequest() {
     } else if (fuelMapWriteRequest >= FUEL_MAP_TOTAL_REQUESTS) {
         // this was the last write request
         syncFuelTablesAndAfrData();
-        fuelMapWriteRequest = 0;
-        if (writeSampleMap) {
-            writeSampleMap = false;
+        if (sampleFuelMapMode) {
+            // if in sample map writing; after sending the entire sample map
+            // nothing else will be sent
+            fuelMapWriteRequest = -1;
+        } else {
+            fuelMapWriteRequest = 0;
         }
         return false;
     } else {
