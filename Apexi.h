@@ -48,7 +48,9 @@ private:
 
     void decodeResponseAndSendNextRequest(const QByteArray &buffer);
 
-    void sendPFCRequest(int requestIndex);
+    void sendPfcReadRequest();
+
+    void updateAutoTuneLogs();
 
     double packageADV[33];
 
@@ -426,7 +428,7 @@ public
 
     void decodeAux(QByteArray rawmessagedata);
 
-    void decodeMap(QByteArray rawmessagedata);
+    void decodeMapIndices(QByteArray rawmessagedata);
 
     void decodeBasic(QByteArray rawmessagedata);
 

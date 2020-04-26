@@ -2,6 +2,11 @@
 #define HELLOCPP_APEXUFUELMAP_H
 
 /**
+ * The length in bytes of a map write packet.
+ */
+static const int MAP_WRITE_PACKET_LENGTH = 103;
+
+/**
  * In order to read or write the entire fuel map; 8 requests are required.
  */
 static const int FUEL_MAP_TOTAL_REQUESTS = 8;
@@ -30,9 +35,8 @@ static const double MAX_FUEL_PERCENTAGE_CHANGE = 0.1;
 
 using namespace std;
 
-void enableSampleFuelMapMode();
-void disableSampleFuelMapMode();
 void readFuelMap(int fuelRequestNumber, const char* rawData);
+char* createFuelMapWritePacket(int fuelRequestNumber, double (&map)[FUEL_TABLE_SIZE][FUEL_TABLE_SIZE]);
 char* getNextFuelMapWritePacket();
 void updateAFRData(int rpmIdx, int loadIdx, double afr);
 bool handleNextFuelMapWriteRequest();
