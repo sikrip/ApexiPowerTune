@@ -300,6 +300,7 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
             cout << endl;
             Apexi::writeRequestPFC(QByteArray::fromRawData(packet, 103));
             expectedbytes = 3; // ack packet (0xF2 0x02 0x0B) is expected
+            m_timer.start(700);
             //TODO should verify that the ack packet is actually received
         } else {
             // Decide the next request to be sent to PFC
