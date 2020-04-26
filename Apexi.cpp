@@ -213,7 +213,7 @@ void Apexi::handleTimeout() {
 }
 
 void Apexi::handleError(QSerialPort::SerialPortError serialPortError) {
-    cout << "Handle error " << m_serialport->errorString() << endl;
+    cout << "Handle error " << m_serialport->errorString().toStdString() << endl;
     if (serialPortError == QSerialPort::ReadError) {
         QString fileName = "Errors.txt";
         QFile mFile(fileName);
