@@ -274,9 +274,9 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
             char* packet = getNextFuelMapWritePacket();
             cout << "Sending sample map request (hex format): ";
             for (int i=0; i < sizeof(packet); i++) {
-                cout << hex << packetp[i];
+                cout << hex << packet[i];
             }
-            cout << endl
+            cout << endl;
             Apexi::writeRequestPFC(QByteArray::fromRawData(packet, sizeof(packet)));
             expectedbytes = 3; // ack packet (0xF2 0x02 0x0B) is expected
             //TODO should verify that the ack packet is actually received
