@@ -144,6 +144,17 @@ void Apexi::clear() {
 
 //function to open serial port
 void Apexi::openConnection(const QString &portName) {
+    enableSampleFuelMapMode();
+    int mapChunk = 1;
+    while (handleNextFuelMapWriteRequest()) {
+        cout << "Writing sample map chunk " << mapChunk << endl;
+        QByteArray ba = QByteArray::fromRawData(getNextFuelMapWritePacket(), 103);
+        for (int i=0; i<ba.size(); i++) {
+            cout << hex < (int) ba[i];
+        }
+        cout << endl;
+        mapChunk++;
+    }
     qDebug() << "Open connection";
     port = portName;
     initSerialPort();
@@ -271,13 +282,7 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         enableSampleFuelMapMode();
         if (handleNextFuelMapWriteRequest()) {
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
-            char* packet = getNextFuelMapWritePacket();
-            cout << "Sending sample map request (hex format): ";
-            for (int i=0; i < sizeof(packet); i++) {
-                cout << hex << packet[i];
-            }
-            cout << endl;
-            Apexi::writeRequestPFC(QByteArray::fromRawData(packet, sizeof(packet)));
+            Apexi::writeRequestPFC(QByteArray::fromRawData(getNextFuelMapWritePacket(), 103));
             expectedbytes = 3; // ack packet (0xF2 0x02 0x0B) is expected
             //TODO should verify that the ack packet is actually received
         } else {
@@ -386,8 +391,8 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
             default:
                 char* resp = rawmessagedata.data();
                 cout << "Dont know what to do with the following PFC response: ";
-                for(int i=0; i < sizeof(resp); i++) {
-                    cout << hex << resp[i];
+                for(int i=0; i < rawmessagedata.size(); i++) {
+                    cout << hex << (int)resp[i];
                 }
                 cout << endl;
                 break;
