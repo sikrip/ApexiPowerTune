@@ -275,7 +275,7 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         m_buffer.clear();
         m_timer.stop();
 
-        if (requestIndex == ADV_DATA_REQUEST) {
+        if (requestIndex < ADV_DATA_REQUEST) {
             char *resp = m_apexiMsg.data();
             cout << "PFC response: ";
             for (int i = 0; i < m_apexiMsg.size(); i++) {
