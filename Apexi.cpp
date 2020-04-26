@@ -151,7 +151,7 @@ void Apexi::openConnection(const QString &portName) {
         QByteArray ba = QByteArray::fromRawData(getNextFuelMapWritePacket(), 103);
         char* packet = ba.data();
         for (int i=0; i<ba.size(); i++) {
-            cout << hex < (int) packet[i];
+            cout << hex << (int) packet[i];
         }
         cout << endl;
         mapChunk++;
