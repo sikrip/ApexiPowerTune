@@ -144,7 +144,7 @@ void Apexi::clear() {
 
 //function to open serial port
 void Apexi::openConnection(const QString &portName) {
-    enableSampleFuelMapMode();
+    /*enableSampleFuelMapMode();
     int mapChunk = 1;
     while (handleNextFuelMapWriteRequest()) {
         cout << "Writing sample map chunk " << mapChunk << endl;
@@ -155,8 +155,8 @@ void Apexi::openConnection(const QString &portName) {
         }
         cout << endl;
         mapChunk++;
-    }
-    qDebug() << "Open connection";
+    }*/
+    cout << "Open connection\n";
     port = portName;
     initSerialPort();
     m_serialport->setPortName(port);
@@ -181,7 +181,7 @@ void Apexi::openConnection(const QString &portName) {
 }
 
 void Apexi::closeConnection() {
-    qDebug() << "Close connection";
+    qDebug() << "Close connection\n";
     disconnect(this->m_serialport, SIGNAL(readyRead()), this, SLOT(readyToRead()));
     disconnect(m_serialport, static_cast<void (QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),
                this, &Apexi::handleError);
@@ -191,12 +191,12 @@ void Apexi::closeConnection() {
 }
 
 void Apexi::retryconnect() {
-    qDebug() << "Retry connection";
+    cout << "Retry connection\n";
     Apexi::openConnection(port);
 }
 
 void Apexi::handleTimeout() {
-    qDebug() << "Handle timeout";
+    cout << "Handle timeout\n";
     m_dashboard->setTimeoutStat(QString("Is Timeout : Y"));
     m_timer.stop();
     m_serialport->close();
@@ -213,7 +213,7 @@ void Apexi::handleTimeout() {
 }
 
 void Apexi::handleError(QSerialPort::SerialPortError serialPortError) {
-    qDebug() << "Handle error " << m_serialport->errorString();
+    cout << "Handle error " << m_serialport->errorString() << endl;
     if (serialPortError == QSerialPort::ReadError) {
         QString fileName = "Errors.txt";
         QFile mFile(fileName);
@@ -275,6 +275,15 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         m_buffer.clear();
         m_timer.stop();
 
+        if (requestIndex == ADV_DATA_REQUEST) {
+            char *resp = m_apexiMsg.data();
+            cout << "PFC response: ";
+            for (int i = 0; i < m_apexiMsg.size(); i++) {
+                cout << hex << (int) resp[i];
+            }
+            cout << endl;
+        }
+
         // Decode current data
         decodePfcData(m_apexiMsg);
         m_apexiMsg.clear();
@@ -283,7 +292,13 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         enableSampleFuelMapMode();
         if (handleNextFuelMapWriteRequest()) {
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
-            Apexi::writeRequestPFC(QByteArray::fromRawData(getNextFuelMapWritePacket(), 103));
+            char* packet = getNextFuelMapWritePacket();
+            cout << "Writing sample map ";
+            for (int i=0; i< 103; i++) {
+                cout << hex << (int) packet[i];
+            }
+            cout << endl;
+            Apexi::writeRequestPFC(QByteArray::fromRawData(packet, 103));
             expectedbytes = 3; // ack packet (0xF2 0x02 0x0B) is expected
             //TODO should verify that the ack packet is actually received
         } else {
@@ -390,12 +405,6 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
                 break;
             */
             default:
-                char* resp = rawmessagedata.data();
-                cout << "Dont know what to do with the following PFC response: ";
-                for(int i=0; i < rawmessagedata.size(); i++) {
-                    cout << hex << (int)resp[i];
-                }
-                cout << endl;
                 break;
         }
     }
