@@ -2,6 +2,8 @@
 #include "dashboard.h"
 #include "connect.h"
 #include "ApexuFuelMap.h"
+#include <iostream>
+#include <iomanip>
 #include <QTime>
 #include <QTimer>
 #include <QDebug>
@@ -266,11 +268,16 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         m_apexiMsg.clear();
 
         // TODO remove this after fuel map write is verified
-        qDebug() << "Sending sample fuel map...";
         enableSampleFuelMapMode();
         if (handleNextFuelMapWriteRequest()) {
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
-            Apexi::writeRequestPFC(QByteArray::fromRawData(getNextFuelMapWritePacket(), 103));
+            char* packet = getNextFuelMapWritePacket();
+            cout << "Sending sample map request (hex format): ";
+            for (int i=0; i < sizeof(packet); i++) {
+                cout << hex << packetp[i];
+            }
+            cout << endl
+            Apexi::writeRequestPFC(QByteArray::fromRawData(packet, sizeof(packet)));
             expectedbytes = 3; // ack packet (0xF2 0x02 0x0B) is expected
             //TODO should verify that the ack packet is actually received
         } else {
@@ -377,6 +384,12 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
                 break;
             */
             default:
+                char* resp = rawmessagedata.data();
+                cout << "Dont know what to do with the following PFC response: ";
+                for(int i=0; i < sizeof(resp); i++) {
+                    cout << hex << resp[i];
+                }
+                cout << endl;
                 break;
         }
     }
