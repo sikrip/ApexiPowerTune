@@ -275,13 +275,8 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         m_buffer.clear();
         m_timer.stop();
 
-        if (requestIndex < ADV_DATA_REQUEST) {
-            char *resp = m_apexiMsg.data();
-            cout << "PFC response: ";
-            for (int i = 0; i < m_apexiMsg.size(); i++) {
-                cout << hex << (int) resp[i];
-            }
-            cout << endl;
+        if (requestIndex == 0) {
+            cout << "PFC response packet: " << m_apexiMsg.toHex().toStdString() << endl;
         }
 
         // Decode current data
@@ -292,13 +287,9 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         enableSampleFuelMapMode();
         if (handleNextFuelMapWriteRequest()) {
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
-            char* packet = getNextFuelMapWritePacket();
-            cout << "Writing sample map ";
-            for (int i=0; i< 103; i++) {
-                cout << hex << (int) packet[i];
-            }
-            cout << endl;
-            Apexi::writeRequestPFC(QByteArray::fromRawData(packet, 103));
+            QByteArray writePacket = QByteArray::fromRawData(getNextFuelMapWritePacket(), 103);
+            cout << "Sending map write packet: " << writePacket.toHex().toStdString() << endl;
+            Apexi::writeRequestPFC(writePacket);
             expectedbytes = 3; // ack packet (0xF2 0x02 0x0B) is expected
             m_timer.start(700);
             //TODO should verify that the ack packet is actually received
@@ -389,15 +380,15 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
                 break;
             case ID::FuelMapBatch8:
                 readFuelMap(8, rawmessagedata.data());
-                qDebug() << "Read the following fuel map\n";
+                cout << "Read the following fuel map\n";
                 for(int r=0; r<20; r++) {
                     for(int c=0; c<20; c++) {
-                        qDebug() << getCurrentFuel(r, c);
+                        cout << getCurrentFuel(r, c);
                         if (c < 19 ) {
-                            qDebug() << ",";
+                            cout << ",";
                         }
                     }
-                    qDebug() << "\n";
+                    cout << "\n";
                 }
                 break;
                 /*
