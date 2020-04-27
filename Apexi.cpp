@@ -300,6 +300,7 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         m_apexiMsg.clear();
 
         if (handleNextFuelMapWriteRequest(logLevel>1)) {
+            m_dashboard->setlaptime(QString("Sending Map"));
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
             QByteArray writePacket = QByteArray::fromRawData(getNextFuelMapWritePacket(), MAP_WRITE_PACKET_LENGTH);
             if (logLevel>1) {
@@ -330,11 +331,14 @@ void Apexi::updateAutoTuneLogs() {
     const int loadIdx = packageMap[1];// row MapP
     const double waterTemp = packageADV3[10]; // water temp for toyota
     if (rpmIdx < 10 && loadIdx < 10 && waterTemp >= 75) {
+        m_dashboard->setlaptime(QString("Logging"));
         if (logLevel>1) {
             cout << "updateAFRData. Water temp: " << waterTemp << endl;
         }
         const double afr = (double) AN3AN4calc; // wideband is connected to An3-AN4
         updateAFRData(rpmIdx, loadIdx, afr);
+    } else {
+        m_dashboard->setlaptime(QString("Cond. Not met"));
     }
 }
 
