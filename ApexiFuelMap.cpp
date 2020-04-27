@@ -1,5 +1,7 @@
 #include "ApexuFuelMap.h"
 #include <stdexcept>
+#include <iostream>
+#include <iomanip>
 
 using namespace std;
 
@@ -257,8 +259,10 @@ void syncFuelTablesAndAfrData() {
 /**
  * Decides whether the new fuel map should be sent to PFC.
  * Also, updates the fuelMapWriteRequest because the map is sent in chunks to the PFC.
+ *
+ * @param log when true the afr and new fuel table data will be logged
  */
-bool handleNextFuelMapWriteRequest() {
+bool handleNextFuelMapWriteRequest(bool log) {
     if (fuelMapWriteRequest == 0) {
         // not writing (fuelMapWriteRequest == 0) and its time to attempt
         if (afrSamplesCount % fuelMapWriteAttemptInterval == 0 &&
@@ -268,6 +272,10 @@ bool handleNextFuelMapWriteRequest() {
 
             // update the stats
             mapWriteCount++;
+
+            if (log) {
+                logFuelData();
+            }
             return true;
         } else {
             return false;
@@ -302,4 +310,39 @@ double getCurrentFuel(int row, int col) {
  */
 double getNewFuel(int row, int col){
     return newFuelMap[row][col];
+}
+
+void printLoggedAfrAvg() {
+    cout << "\n== Logged AFR avg ==" << endl;
+    for(int r=0; r<FUEL_TABLE_SIZE; r++) {
+        for(int c=0; c<FUEL_TABLE_SIZE; c++) {
+            const double avgAfr = loggedNumAfrMap[r][c] > 0 ? loggedSumAfrMap[r][c] / loggedNumAfrMap[r][c] : 0;
+            cout << setw(4) << fixed << setprecision(1) << avgAfr
+                 << "(" << setw(4) << loggedNumAfrMap[r][c] << ")";
+            if (c < 19) {
+                cout << ",";
+            }
+        }
+        cout << endl;
+    }
+}
+
+void printNewFuelTable() {
+    cout << "\n== New Fuel table ==" << endl;
+    for(int r=0; r < FUEL_TABLE_SIZE; r++) {
+        for(int c=0; c < FUEL_TABLE_SIZE; c++) {
+            cout << setw(4) << fixed << setprecision(1) << newFuelMap[r][c]
+                 << "(" << newFuelMap[r][c] - currentFuelMap[r][c] << ")";
+            if (c < 19) {
+                cout << ",";
+            }
+        }
+        cout << endl;
+    }
+}
+
+void logFuelData() {
+    cout << "Total fuel table writes: " << mapWriteCount << endl;
+    printLoggedAfrAvg();
+    printNewFuelTable();
 }

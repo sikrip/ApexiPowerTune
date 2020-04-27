@@ -39,9 +39,11 @@ void readFuelMap(int fuelRequestNumber, const char* rawData);
 char* createFuelMapWritePacket(int fuelRequestNumber, double (&map)[FUEL_TABLE_SIZE][FUEL_TABLE_SIZE]);
 char* getNextFuelMapWritePacket();
 void updateAFRData(int rpmIdx, int loadIdx, double afr);
-bool handleNextFuelMapWriteRequest();
+bool handleNextFuelMapWriteRequest(bool log);
 
 double getCurrentFuel(int row, int col);
 double getNewFuel(int row, int col);
+
+void logFuelData();
 
 #endif //HELLOCPP_APEXUFUELMAP_H

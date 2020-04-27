@@ -299,7 +299,7 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         decodePfcData(m_apexiMsg);
         m_apexiMsg.clear();
 
-        if (handleNextFuelMapWriteRequest()) {
+        if (handleNextFuelMapWriteRequest(logLevel>1)) {
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
             QByteArray writePacket = QByteArray::fromRawData(getNextFuelMapWritePacket(), MAP_WRITE_PACKET_LENGTH);
             if (logLevel>1) {
