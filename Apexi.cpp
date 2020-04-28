@@ -115,7 +115,7 @@ qreal advboost;
 double mul[80] = FC_INFO_MUL;  // required values for calculation from raw to readable values for Advanced Sensor info
 double add[] = FC_INFO_ADD;
 
-int logLevel = 2; // 0: off, 1: connect, disconnect etc, 2: all
+int logLevel = 1; // 0: off, 1: connect, disconnect etc, 2: all
 
 Apexi::Apexi(QObject *parent)
         : QObject(parent), m_dashboard(Q_NULLPTR) {
@@ -299,11 +299,11 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         decodePfcData(m_apexiMsg);
         m_apexiMsg.clear();
 
-        if (handleNextFuelMapWriteRequest(logLevel>1)) {
+        if (handleNextFuelMapWriteRequest(logLevel>0)) {
             m_dashboard->setlaptime(QString("Sending Map"));
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
             QByteArray writePacket = QByteArray::fromRawData(getNextFuelMapWritePacket(), MAP_WRITE_PACKET_LENGTH);
-            if (logLevel>1) {
+            if (logLevel>0) {
                 cout << "Sending map write packet: " << writePacket.toHex().toStdString() << endl;
             }
             Apexi::writeRequestPFC(writePacket);
