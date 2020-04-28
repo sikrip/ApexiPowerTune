@@ -332,12 +332,15 @@ void Apexi::updateAutoTuneLogs() {
     const double waterTemp = packageADV3[10]; // water temp for toyota
     if (rpmIdx < 10 && loadIdx < 10 && waterTemp >= 75) {
         m_dashboard->setlaptime(QString("Logging"));
-        if (logLevel>1) {
+        if (logLevel>0) {
             cout << "updateAFRData. Water temp: " << waterTemp << endl;
         }
         const double afr = (double) AN3AN4calc; // wideband is connected to An3-AN4
         updateAFRData(rpmIdx, loadIdx, afr);
     } else {
+        if (logLevel>0) {
+            cout << "Autotune cond. Not met: " << waterTemp << endl;
+        }
         m_dashboard->setlaptime(QString("Cond. Not met"));
     }
 }
