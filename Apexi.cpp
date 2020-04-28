@@ -115,7 +115,15 @@ qreal advboost;
 double mul[80] = FC_INFO_MUL;  // required values for calculation from raw to readable values for Advanced Sensor info
 double add[] = FC_INFO_ADD;
 
+const int MAX_AUTOTUNE_RPM_IDX = 6; // ~3250 rpm
+const int MAX_AUTOTUNE_LOAD_IDX = 10; // ~7600 load
+const double MIN_AUTOTUNE_WATER_TEMP = 75;
+const double MIN_AUTOTUNE_RPM = 500;
+
 int logLevel = 1; // 0: off, 1: connect, disconnect etc, 2: all
+
+// Used temporarily for logging debug messages
+long logSamplesCount = 0;
 
 Apexi::Apexi(QObject *parent)
         : QObject(parent), m_dashboard(Q_NULLPTR) {
@@ -300,7 +308,6 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         m_apexiMsg.clear();
 
         if (handleNextFuelMapWriteRequest(logLevel>0)) {
-            m_dashboard->setlaptime(QString("Sending Map"));
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
             QByteArray writePacket = QByteArray::fromRawData(getNextFuelMapWritePacket(), MAP_WRITE_PACKET_LENGTH);
             if (logLevel>0) {
@@ -329,23 +336,22 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
 void Apexi::updateAutoTuneLogs() {
     const int rpmIdx = packageMap[0]; // col MapN
     const int loadIdx = packageMap[1];// row MapP
-    const double waterTemp = 80; // packageADV3[10]; // water temp for toyota
-    if (rpmIdx < 10 && loadIdx < 10 && waterTemp >= 75) {
-        m_dashboard->setlaptime(QString("Logging"));
+    const double rpm = packageBasic[3];
+    const double waterTemp = packageBasic[7];
+    const double afr = (double) AN3AN4calc; // wideband is connected to An3-AN4
 
-        const double afr = (double) AN3AN4calc; // wideband is connected to An3-AN4
-        /*if (requestIndex == ADV_DATA_REQUEST) {
-            cout << "updateAFRData. Water temp: " << waterTemp << " rpmIdx " << rpmIdx << " loadIdx " <<  loadIdx << " AFR " << afr << endl;
-            logFuelData();
-        }*/
+    const bool shouldUpdateAfr = rpmIdx <= MAX_AUTOTUNE_RPM_IDX && loadIdx < MAX_AUTOTUNE_LOAD_IDX &&
+                                 waterTemp >= MIN_AUTOTUNE_WATER_TEMP && rpm > MIN_AUTOTUNE_RPM;
 
+    // if (logLevel > 1) {
+    if (logSamplesCount++ % 50) { // log every 50 samples for initial debugging
+        cout << "Updating fuel data:" << shouldUpdateAfr << " Water temp:" << waterTemp
+             << " RpmIdx:" << rpmIdx << " LoadIdx:" <<  loadIdx
+             << " Rpm: " << rpm << " AFR:" << afr << endl;
+    }
+
+    if (shouldUpdateAfr) {
         updateAFRData(rpmIdx, loadIdx, afr);
-    } else {
-        /*
-        if (logLevel>0) {
-            cout << "Autotune cond. Not met: " << waterTemp << endl;
-        }*/
-        m_dashboard->setlaptime(QString("Cond. Not met"));
     }
 }
 

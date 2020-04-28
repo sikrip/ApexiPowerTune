@@ -39,7 +39,7 @@ int fuelMapWriteRequest;
 /**
  * Attempt to write the map after each this number of samples.
  */
-int fuelMapWriteAttemptInterval = 100;
+int fuelMapWriteAttemptInterval = 50;
 
 /**
  * This number of samples are required for each cell in order for this cell to
@@ -57,7 +57,7 @@ double targetAFR = 14.7;
 /**
  * This amount of cell changes are required in order for the map to be sent to PFC.
  */
-int minCellsChangesForWriteAttempt = 2;
+int minCellsChangesForWriteAttempt = 1;
 
 /**
  * Counts how many times the fuel map was sent to PFC.
