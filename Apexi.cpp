@@ -334,10 +334,10 @@ void Apexi::updateAutoTuneLogs() {
         m_dashboard->setlaptime(QString("Logging"));
 
         const double afr = (double) AN3AN4calc; // wideband is connected to An3-AN4
-        if (requestIndex == ADV_DATA_REQUEST) {
+        /*if (requestIndex == ADV_DATA_REQUEST) {
             cout << "updateAFRData. Water temp: " << waterTemp << " rpmIdx " << rpmIdx << " loadIdx " <<  loadIdx << " AFR " << afr << endl;
             logFuelData();
-        }
+        }*/
 
         updateAFRData(rpmIdx, loadIdx, afr);
     } else {
