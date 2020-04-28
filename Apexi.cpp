@@ -410,15 +410,17 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
                 break;
             case ID::FuelMapBatch8:
                 readFuelMap(8, rawmessagedata.data());
-                cout << "Read the following fuel map\n";
-                for(int r=0; r<20; r++) {
-                    for(int c=0; c<20; c++) {
-                        cout << getCurrentFuel(r, c);
-                        if (c < 19 ) {
-                            cout << ",";
+                if (logLevel>0) {
+                    cout << "== Read the following fuel map ==\n";
+                    for (int r = 0; r < 20; r++) {
+                        for (int c = 0; c < 20; c++) {
+                            cout << getCurrentFuel(r, c);
+                            if (c < 19) {
+                                cout << ",";
+                            }
                         }
+                        cout << "\n";
                     }
-                    cout << "\n";
                 }
                 break;
                 /*
