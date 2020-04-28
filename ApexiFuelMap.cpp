@@ -46,7 +46,7 @@ int fuelMapWriteAttemptInterval = 100;
  * be eligible to be sent to PFC.
  * TODO should be table
  */
-int minCellSamples = 2;
+int minCellSamples = 10;
 
 /**
  * This target AFR for each cell.
@@ -57,7 +57,7 @@ double targetAFR = 14.7;
 /**
  * This amount of cell changes are required in order for the map to be sent to PFC.
  */
-int minCellsChangesForWriteAttempt = 5;
+int minCellsChangesForWriteAttempt = 2;
 
 /**
  * Counts how many times the fuel map was sent to PFC.
