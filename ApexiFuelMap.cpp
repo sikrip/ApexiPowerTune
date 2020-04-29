@@ -37,7 +37,7 @@ double loggedNumAfrMap[FUEL_TABLE_SIZE][FUEL_TABLE_SIZE];
 int fuelMapWriteRequest;
 
 /**
- * Attempt to write the map after each this number of samples.
+ * Attempt to re-calc and write the map after each this number of samples.
  */
 int fuelMapWriteAttemptInterval = 50;
 
@@ -198,8 +198,6 @@ void updateAFRData(int rpmIdx, int loadIdx, double afr) {
     if (rpmIdx >= FUEL_TABLE_SIZE || loadIdx >= FUEL_TABLE_SIZE) {
         throw std::out_of_range("RPM or Load index out of bounds!");
     }
-    // TODO if (rmp > 500 && temp > 75)
-
     afrSamplesCount++;
 
     // sum afr values
@@ -260,9 +258,12 @@ void syncFuelTablesAndAfrData() {
  * Decides whether the new fuel map should be sent to PFC.
  * Also, updates the fuelMapWriteRequest because the map is sent in chunks to the PFC.
  *
- * @param log when true the afr and new fuel table data will be logged
+ * @param maxWriteRequests value lower than FUEL_MAP_TOTAL_REQUESTS will not write the entire fuel map
  */
-bool handleNextFuelMapWriteRequest(bool log) {
+bool handleNextFuelMapWriteRequest(int maxWriteRequests) {
+    if (maxWriteRequests > FUEL_MAP_TOTAL_REQUESTS) {
+        maxWriteRequests = FUEL_MAP_TOTAL_REQUESTS;
+    }
     if (fuelMapWriteRequest == 0) {
         // not writing (fuelMapWriteRequest == 0) and its time to attempt
         if (afrSamplesCount % fuelMapWriteAttemptInterval == 0 &&
@@ -272,21 +273,17 @@ bool handleNextFuelMapWriteRequest(bool log) {
 
             // update the stats
             mapWriteCount++;
-
-            if (log) {
-                logFuelData();
-            }
             return true;
         } else {
             return false;
         }
-    } else if (fuelMapWriteRequest >= FUEL_MAP_MAX_WRITE_REQUESTS) {
+    } else if (fuelMapWriteRequest >= maxWriteRequests) {
         // this was the last write request
         syncFuelTablesAndAfrData();
         fuelMapWriteRequest = 0;
         return false;
     } else {
-        // fuelMapWriteRequest = 1..FUEL_MAP_MAX_WRITE_REQUESTS, continue with the next fuel write request
+        // fuelMapWriteRequest = 1..maxWriteRequests, continue with the next fuel write request
         fuelMapWriteRequest++;
         return true;
     }
@@ -312,10 +309,14 @@ double getNewFuel(int row, int col){
     return newFuelMap[row][col];
 }
 
-void printLoggedAfrAvg(int printSize) {
+int getCurrentFuelMapWriteRequest() {
+    return fuelMapWriteRequest;
+}
+
+void printLoggedAfrAvg(int printMapSize) {
     cout << "\n== Logged AFR avg ==" << endl;
-    for(int r=0; r < printSize; r++) {
-        for(int c=0; c < printSize; c++) {
+    for(int r=0; r < printMapSize; r++) {
+        for(int c=0; c < printMapSize; c++) {
             const double avgAfr = loggedNumAfrMap[r][c] > 0 ? loggedSumAfrMap[r][c] / loggedNumAfrMap[r][c] : 0;
             cout << setw(4) << fixed << setprecision(1) << avgAfr
                  << "(" << setw(4) << loggedNumAfrMap[r][c] << ")";
@@ -327,10 +328,10 @@ void printLoggedAfrAvg(int printSize) {
     }
 }
 
-void printNewFuelTable(int printSize) {
+void printNewFuelTable(int printMapSize) {
     cout << "\n== New Fuel table ==" << endl;
-    for(int r=0; r < printSize; r++) {
-        for(int c=0; c < printSize; c++) {
+    for(int r=0; r < printMapSize; r++) {
+        for(int c=0; c < printMapSize; c++) {
             cout << setw(4) << fixed << setprecision(1) << newFuelMap[r][c]
                  << "(" << newFuelMap[r][c] - currentFuelMap[r][c] << ")";
             if (c < 19) {
@@ -341,9 +342,9 @@ void printNewFuelTable(int printSize) {
     }
 }
 
-void logFuelData() {
-    cout << "\n== Total fuel table writes: " << mapWriteCount << endl;
+void logFuelData(int printMapSize) {
+    cout << "== Total fuel table writes: " << mapWriteCount << " ==" << endl;
     // Do not print entire map as only the lower rmp/load is auto - tuned.
-    printLoggedAfrAvg(FUEL_TABLE_SIZE / 2);
-    printNewFuelTable(FUEL_TABLE_SIZE / 2);
+    printLoggedAfrAvg(printMapSize);
+    printNewFuelTable(printMapSize);
 }

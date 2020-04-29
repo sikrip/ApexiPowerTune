@@ -115,6 +115,11 @@ qreal advboost;
 double mul[80] = FC_INFO_MUL;  // required values for calculation from raw to readable values for Advanced Sensor info
 double add[] = FC_INFO_ADD;
 
+/**
+ * Limits the number of write requests to the fuel map.
+ * A value lower than 8 will not write the entire fuel map.
+ */
+const int FUEL_MAP_MAX_WRITE_REQUESTS = 3;
 const int MAX_AUTOTUNE_RPM_IDX = 6; // ~3250 rpm
 const int MAX_AUTOTUNE_LOAD_IDX = 10; // ~7600 load
 const double MIN_AUTOTUNE_WATER_TEMP = 75;
@@ -308,10 +313,15 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         decodePfcData(m_apexiMsg);
         m_apexiMsg.clear();
 
-        if (handleNextFuelMapWriteRequest(logLevel>0)) {
+        if (handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
+            if (logLevel>0 && getCurrentFuelMapWriteRequest() == 1) {
+                    cout << "\nWriting fuel map..." << endl;
+                    logFuelData(10);
+                }
+            }
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
             QByteArray writePacket = QByteArray::fromRawData(getNextFuelMapWritePacket(), MAP_WRITE_PACKET_LENGTH);
-            if (logLevel>0) {
+            if (logLevel>1) {
                 cout << "Sending map write packet: " << writePacket.toHex().toStdString() << endl;
             }
             Apexi::writeRequestPFC(writePacket);
@@ -344,8 +354,7 @@ void Apexi::updateAutoTuneLogs() {
     const bool shouldUpdateAfr = rpmIdx <= MAX_AUTOTUNE_RPM_IDX && loadIdx < MAX_AUTOTUNE_LOAD_IDX &&
                                  waterTemp >= MIN_AUTOTUNE_WATER_TEMP && rpm > MIN_AUTOTUNE_RPM;
 
-    // if (logLevel > 1) {
-    if (logSamplesCount++ % LOG_INTERVAL) { // log every 50 samples for initial debugging
+    if (logLevel > 0 && logSamplesCount++ % LOG_INTERVAL) { // log every 50 samples for initial debugging
         cout << "Updating fuel data:" << shouldUpdateAfr << " Water temp:" << waterTemp
              << " RpmIdx:" << rpmIdx << " LoadIdx:" <<  loadIdx
              << " Rpm: " << rpm << " AFR:" << afr << endl;
