@@ -280,13 +280,13 @@ bool handleNextFuelMapWriteRequest(bool log) {
         } else {
             return false;
         }
-    } else if (fuelMapWriteRequest >= FUEL_MAP_TOTAL_REQUESTS) {
+    } else if (fuelMapWriteRequest >= FUEL_MAP_MAX_WRITE_REQUESTS) {
         // this was the last write request
         syncFuelTablesAndAfrData();
         fuelMapWriteRequest = 0;
         return false;
     } else {
-        // fuelMapWriteRequest = 1..FUEL_MAP_TOTAL_REQUESTS, continue with the next fuel write request
+        // fuelMapWriteRequest = 1..FUEL_MAP_MAX_WRITE_REQUESTS, continue with the next fuel write request
         fuelMapWriteRequest++;
         return true;
     }
@@ -312,10 +312,10 @@ double getNewFuel(int row, int col){
     return newFuelMap[row][col];
 }
 
-void printLoggedAfrAvg() {
+void printLoggedAfrAvg(int printSize) {
     cout << "\n== Logged AFR avg ==" << endl;
-    for(int r=0; r<FUEL_TABLE_SIZE; r++) {
-        for(int c=0; c<FUEL_TABLE_SIZE; c++) {
+    for(int r=0; r < printSize; r++) {
+        for(int c=0; c < printSize; c++) {
             const double avgAfr = loggedNumAfrMap[r][c] > 0 ? loggedSumAfrMap[r][c] / loggedNumAfrMap[r][c] : 0;
             cout << setw(4) << fixed << setprecision(1) << avgAfr
                  << "(" << setw(4) << loggedNumAfrMap[r][c] << ")";
@@ -327,10 +327,10 @@ void printLoggedAfrAvg() {
     }
 }
 
-void printNewFuelTable() {
+void printNewFuelTable(int printSize) {
     cout << "\n== New Fuel table ==" << endl;
-    for(int r=0; r < FUEL_TABLE_SIZE; r++) {
-        for(int c=0; c < FUEL_TABLE_SIZE; c++) {
+    for(int r=0; r < printSize; r++) {
+        for(int c=0; c < printSize; c++) {
             cout << setw(4) << fixed << setprecision(1) << newFuelMap[r][c]
                  << "(" << newFuelMap[r][c] - currentFuelMap[r][c] << ")";
             if (c < 19) {
@@ -342,7 +342,8 @@ void printNewFuelTable() {
 }
 
 void logFuelData() {
-    cout << "Total fuel table writes: " << mapWriteCount << endl;
-    printLoggedAfrAvg();
-    printNewFuelTable();
+    cout << "\n== Total fuel table writes: " << mapWriteCount << endl;
+    // Do not print entire map as only the lower rmp/load is auto - tuned.
+    printLoggedAfrAvg(FUEL_TABLE_SIZE / 2);
+    printNewFuelTable(FUEL_TABLE_SIZE / 2);
 }

@@ -12,6 +12,13 @@ static const int MAP_WRITE_PACKET_LENGTH = 103;
 static const int FUEL_MAP_TOTAL_REQUESTS = 8;
 
 /**
+ * Limits the number of write requests to the fuel map.
+ * A value lower than FUEL_MAP_TOTAL_REQUESTS will not write the
+ * entire fuel map.
+ */
+static const int FUEL_MAP_MAX_WRITE_REQUESTS = 3;
+
+/**
  * The PFC fuel map is 20x20 rows.
  */
 static const int FUEL_CELLS_PER_REQUEST = 50;

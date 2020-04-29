@@ -122,8 +122,9 @@ const double MIN_AUTOTUNE_RPM = 500;
 
 int logLevel = 1; // 0: off, 1: connect, disconnect etc, 2: all
 
-// Used temporarily for logging debug messages
+// Used logging messages in fixed intervals
 long logSamplesCount = 0;
+const int LOG_INTERVAL = 1000;
 
 Apexi::Apexi(QObject *parent)
         : QObject(parent), m_dashboard(Q_NULLPTR) {
@@ -344,7 +345,7 @@ void Apexi::updateAutoTuneLogs() {
                                  waterTemp >= MIN_AUTOTUNE_WATER_TEMP && rpm > MIN_AUTOTUNE_RPM;
 
     // if (logLevel > 1) {
-    if (logSamplesCount++ % 100) { // log every 50 samples for initial debugging
+    if (logSamplesCount++ % LOG_INTERVAL) { // log every 50 samples for initial debugging
         cout << "Updating fuel data:" << shouldUpdateAfr << " Water temp:" << waterTemp
              << " RpmIdx:" << rpmIdx << " LoadIdx:" <<  loadIdx
              << " Rpm: " << rpm << " AFR:" << afr << endl;
