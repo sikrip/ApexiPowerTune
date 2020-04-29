@@ -344,7 +344,7 @@ void Apexi::updateAutoTuneLogs() {
                                  waterTemp >= MIN_AUTOTUNE_WATER_TEMP && rpm > MIN_AUTOTUNE_RPM;
 
     // if (logLevel > 1) {
-    if (logSamplesCount++ % 50) { // log every 50 samples for initial debugging
+    if (logSamplesCount++ % 100) { // log every 50 samples for initial debugging
         cout << "Updating fuel data:" << shouldUpdateAfr << " Water temp:" << waterTemp
              << " RpmIdx:" << rpmIdx << " LoadIdx:" <<  loadIdx
              << " Rpm: " << rpm << " AFR:" << afr << endl;
