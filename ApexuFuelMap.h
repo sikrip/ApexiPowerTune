@@ -31,6 +31,11 @@ static const double MIN_AFR_DELTA = 0.15;
  */
 static const double MAX_FUEL_PERCENTAGE_CHANGE = 0.2;
 
+static const double CELL_CHANGE_PERCENTAGE[9] =
+    { 0.02, 0.02, 0.02,
+      0.02, 0.84, 0.02,
+      0.02, 0.02, 0.02 };
+
 #include <sstream>
 
 using namespace std;

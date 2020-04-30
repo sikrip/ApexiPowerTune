@@ -220,14 +220,29 @@ int calculateNewFuelMap() {
                 // enough samples logged; re-calc fuel
                 const double loggedAvgAfr = loggedSumAfrMap[row][col] / loggedNumAfrMap[row][col];
                 if (abs(loggedAvgAfr - targetAFR) >= MIN_AFR_DELTA) {
-                    const double currentFuel = currentFuelMap[row][col];
-                    const double newFuel = (loggedAvgAfr / targetAFR) * currentFuel;
-                    // Make sure that no huge changes are made in the fuel map at once
-                    if (abs(newFuel - currentFuel) / currentFuel <= MAX_FUEL_PERCENTAGE_CHANGE) {
-                        newFuelMap[row][col] = newFuel;
-                    } else {
-                        const double maxFuelDelta = (newFuel < currentFuel) ? -MAX_FUEL_PERCENTAGE_CHANGE * currentFuel : MAX_FUEL_PERCENTAGE_CHANGE * currentFuel;
-                        newFuelMap[row][col] = maxFuelDelta + currentFuel;
+                    const double newFuel = (loggedAvgAfr / targetAFR) * currentFuelMap[row][col];
+                    const double totalFuelDelta = newFuel - currentFuelMap[row][col];
+
+                    int iCell = 0;
+                    for (int wRow = max(0, row -1); wRow <= min(FUEL_TABLE_SIZE -1, row + 1); wRow++) {
+                        for (int wCol = max(0, col -1); wCol <= min(FUEL_TABLE_SIZE -1, col + 1); wCol++) {
+                            const double currentCellFuel = currentFuelMap[wRow][wCol];
+                            double cellDelta = totalFuelDelta * CELL_CHANGE_PERCENTAGE[iCell++];
+                            // Make sure that no huge changes are made in the fuel map at once
+                            if (abs(cellDelta) / currentCellFuel > MAX_FUEL_PERCENTAGE_CHANGE) {
+                                cellDelta = (newFuel < currentCellFuel) ? -MAX_FUEL_PERCENTAGE_CHANGE * currentCellFuel : MAX_FUEL_PERCENTAGE_CHANGE * currentCellFuel;
+                            }
+                            if (wRow == row && wCol == col) {
+                                // exact fuel cell
+                                newFuelMap[wRow][wCol] = cellDelta + currentCellFuel;
+                                cellsChanged++;
+                            } else if (loggedNumAfrMap[wRow][wCol] < minCellSamples) {
+                                // cell not affected by exact match, so change is as neighbor
+                                newFuelMap[wRow][wCol] = cellDelta + currentCellFuel;
+
+                                cellsChanged++;
+                            }
+                        }
                     }
                     cellsChanged++;
                 }
@@ -246,9 +261,12 @@ void syncFuelTablesAndAfrData() {
         for (int col = 0; col < 20; col++) {
             if (newFuelMap[row][col] != currentFuelMap[row][col]) {
                 currentFuelMap[row][col] = newFuelMap[row][col];
-                // for each cell that is written to PFC reset the AFR samples.
-                loggedSumAfrMap[row][col] = 0;
-                loggedNumAfrMap[row][col] = 0;
+                // for each cell that is written to PFC as exact match reset the AFR samples.
+                if (loggedNumAfrMap[row][col] >= minCellSamples) {
+                    // this will exclude cells changed as neighbor cells
+                    loggedSumAfrMap[row][col] = 0;
+                    loggedNumAfrMap[row][col] = 0;
+                }
             }
         }
     }
@@ -320,8 +338,8 @@ void printLoggedAfrAvg(int printMapSize) {
             const double avgAfr = loggedNumAfrMap[r][c] > 0 ? loggedSumAfrMap[r][c] / loggedNumAfrMap[r][c] : 0;
             cout << setw(4) << fixed << setprecision(1) << avgAfr
                  << "(" << setw(4) << loggedNumAfrMap[r][c] << ")";
-            if (c < 19) {
-                cout << ",";
+            if (c < printMapSize-1) {
+                cout << " | ";
             }
         }
         cout << endl;
@@ -332,10 +350,16 @@ void printNewFuelTable(int printMapSize) {
     cout << "\n== New Fuel table ==" << endl;
     for(int r=0; r < printMapSize; r++) {
         for(int c=0; c < printMapSize; c++) {
+            const double fuelDelta = newFuelMap[r][c] - currentFuelMap[r][c];
             cout << setw(4) << fixed << setprecision(1) << newFuelMap[r][c]
-                 << "(" << newFuelMap[r][c] - currentFuelMap[r][c] << ")";
-            if (c < 19) {
-                cout << ",";
+                 << "(";
+            if (fuelDelta !=0) {
+                cout << setprecision(2) << fuelDelta << ")";
+            } else {
+                cout << setw(4) << "-" << ")";
+            }
+            if (c < printMapSize-1) {
+                cout << " | ";
             }
         }
         cout << endl;
