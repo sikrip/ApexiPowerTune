@@ -129,7 +129,7 @@ int logLevel = 1; // 0: off, 1: connect, disconnect etc, 2: all
 
 // Used logging messages in fixed intervals
 long logSamplesCount = 0;
-const int LOG_INTERVAL = 1000;
+const int LOG_INTERVAL = 100;
 
 Apexi::Apexi(QObject *parent)
         : QObject(parent), m_dashboard(Q_NULLPTR) {
@@ -346,9 +346,10 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
 void Apexi::updateAutoTuneLogs() {
     const int rpmIdx = packageMap[0]; // col MapN
     const int loadIdx = packageMap[1];// row MapP
-    const double rpm = packageBasic[3];
-    const double waterTemp = packageBasic[7];
+    const double rpm = (double) m_dashboard->rpm(); // packageBasic[3];
+    const double waterTemp = (double) m_dashboard->Watertemp(); // packageBasic[7];
     const double afr = (double) AN3AN4calc; // wideband is connected to An3-AN4
+    const double tps = (double) m_dashboard->ThrottleV();
 
     const bool shouldUpdateAfr = rpmIdx <= MAX_AUTOTUNE_RPM_IDX && loadIdx < MAX_AUTOTUNE_LOAD_IDX &&
                                  waterTemp >= MIN_AUTOTUNE_WATER_TEMP && rpm > MIN_AUTOTUNE_RPM;
@@ -356,7 +357,8 @@ void Apexi::updateAutoTuneLogs() {
     if (logLevel > 0 && logSamplesCount++ % LOG_INTERVAL) { // log every 50 samples for initial debugging
         cout << "Updating fuel data:" << shouldUpdateAfr << " Water temp:" << waterTemp
              << " RpmIdx:" << rpmIdx << " LoadIdx:" <<  loadIdx
-             << " Rpm: " << rpm << " AFR:" << afr << endl;
+             << " Rpm: " << rpm << " AFR:" << afr
+             << " Tps: " << m_dashboard->ThrottleV() << endl;
     }
 
     if (shouldUpdateAfr) {
@@ -1019,6 +1021,9 @@ void Apexi::decodeInit(QByteArray rawmessagedata) {
         modelname == "4G63-D3 " || modelname == "4G63-D4 " || modelname == "4G63-D5 " || modelname == "4G63-D6 " ||
         modelname == "4G63-D7 ") {
         Model = 3;
+    }
+    if (logLevel > 0) {
+        cout << "Platform: " << modelname << " Model: " << Model << " Ecu Idx: " << m_dashboard->ecu();
     }
     m_dashboard->setPlatform(modelname);
 }
