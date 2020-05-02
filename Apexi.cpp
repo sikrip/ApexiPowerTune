@@ -1025,7 +1025,7 @@ void Apexi::decodeInit(QByteArray rawmessagedata) {
         Model = 3;
     }
     if (logLevel > 0) {
-        cout << "Platform: " << modelname << " Model: " << Model << " Ecu Idx: " << m_dashboard->ecu();
+        cout << "Platform: " << modelname.toStdString() << " Model: " << Model << " Ecu Idx: " << m_dashboard->ecu();
     }
     m_dashboard->setPlatform(modelname);
 }
