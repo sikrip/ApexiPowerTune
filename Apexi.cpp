@@ -124,12 +124,20 @@ const int MAX_AUTOTUNE_RPM_IDX = 6; // ~3250 rpm
 const int MAX_AUTOTUNE_LOAD_IDX = 10; // ~7600 load
 const double MIN_AUTOTUNE_WATER_TEMP = 75;
 const double MIN_AUTOTUNE_RPM = 500;
+const double MIN_TPS_VOLT = 0.56;
+const double MAX_TPS_VOLT = 4.024;
+const double MAX_AUTOTUNE_TPS_CHANGE_RATE = 0.15;
+const double MIN_AUTOTUNE_TPS_CHANGE_RATE = -0.15;
+const double MIN_AUTOTUNE_SPEED = 5; // km/h
 
-int logLevel = 1; // 0: off, 1: connect, disconnect etc, 2: all
+double lastTpsVolt = MIN_TPS_VOLT;
+QTime lastLogTime = QTime::currentTime();
 
-// Used logging messages in fixed intervals
+// 0: off, 1: connect, disconnect etc, 2: all
+int logLevel = 1;
+// Used for logging messages in fixed intervals
 long logSamplesCount = 0;
-const int LOG_INTERVAL = 1000;
+const int LOG_INTERVAL = 1;
 
 Apexi::Apexi(QObject *parent)
         : QObject(parent), m_dashboard(Q_NULLPTR) {
@@ -344,23 +352,45 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
 }
 
 void Apexi::updateAutoTuneLogs() {
+    const QTime now = QTime::currentTime();
+
     const int rpmIdx = packageMap[0]; // col MapN
     const int loadIdx = packageMap[1];// row MapP
     const double speed = (double) m_dashboard->speed();
     const double rpm = (double) m_dashboard->rpm(); // packageBasic[3];
     const double waterTemp = (double) m_dashboard->Watertemp(); // packageBasic[7];
     const double afr = (double) AN3AN4calc; // wideband is connected to An3-AN4
-    const double tps = (double) m_dashboard->ThrottleV();
+    const double tpsVolt = (double) m_dashboard->ThrottleV();
 
-    const bool shouldUpdateAfr = rpmIdx <= MAX_AUTOTUNE_RPM_IDX && loadIdx < MAX_AUTOTUNE_LOAD_IDX &&
-                                 waterTemp >= MIN_AUTOTUNE_WATER_TEMP && rpm > MIN_AUTOTUNE_RPM;
+    const doulbe tpsChangeRate = (tpsVolt - lastTpsVolt) / lastLogTime.msecsTo(now);
+    lastLogTime = now;
+    lastTpsVolt = tpsVolt;
 
-    if (logLevel > 0 /* && logSamplesCount++ % LOG_INTERVAL */) {
+    const bool shouldUpdateAfr =
+        // Auto tune only when engine is warmed up
+        waterTemp >= MIN_AUTOTUNE_WATER_TEMP &&
+        // Auto tune only the lower RPM/Load parts of the map
+        rpmIdx <= MAX_AUTOTUNE_RPM_IDX &&
+        loadIdx < MAX_AUTOTUNE_LOAD_IDX &&
+        // Auto tune only when the engine is actually started
+        rpm > MIN_AUTOTUNE_RPM &&
+        // Do not auto tune on sudden throttle changes (do not mess with accel enrich etc)
+        tpsChangeRate <= MAX_AUTOTUNE_TPS_CHANGE_RATE &&
+        tpsChangeRate >= MIN_AUTOTUNE_TPS_CHANGE_RATE &&
+        // Auto tune only when stationary or moving with the throttle pressed
+        (speed <= MIN_AUTOTUNE_SPEED || speed > MIN_AUTOTUNE_SPEED && tpsVolt > MIN_TPS_VOLT);
+
+    if (logLevel > 0 && (logSamplesCount++ % LOG_INTERVAL) == 0) {
         cout << QTime::currentTime().toString("hh:mm:ss.zzz").toStdString()
-             << " Updating fuel data:" << shouldUpdateAfr << " Water temp:" << waterTemp
-             << " RpmIdx:" << rpmIdx << " LoadIdx:" <<  loadIdx
-             << " Rpm:" << rpm << " Speed:" << speed
-             << " AFR:" << afr << " Tps:" << tps << endl;
+             << ", AutoTuning:" << (shouldUpdateAfr?"Yes":"No")
+             << ", WaterTemp:" << waterTemp
+             << ", MapN:" << packageMap[0]
+             << ", MapP:" <<  packageMap[1]
+             << ", Rpm:" << rpm
+             << ", Speed:" << speed
+             << ", AFR:" << afr
+             << ", Tps:" << tpsVolt
+             << ", TpsChangeRate:" << tpsChangeRate << endl;
     }
 
     if (shouldUpdateAfr) {
