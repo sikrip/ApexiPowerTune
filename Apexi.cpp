@@ -844,20 +844,23 @@ void Apexi::decodeAdv(QByteArray rawmessagedata) {
         packageADV3[21] = 0;
 
 
-        m_dashboard->setrpm(packageADV3[0]);
+        // Set by basic info
+        // m_dashboard->setrpm(packageADV3[0]);
+        //m_dashboard->setLeadingign(packageADV3[6]);
+        //m_dashboard->setTrailingign(packageADV3[7]);
+        //m_dashboard->setWatertemp(packageADV3[10]);
+        //m_dashboard->setIntaketemp(packageADV3[11]);
+        //m_dashboard->setBatteryV(packageADV3[13]);
+        //m_dashboard->setSpeed(packageADV3[14]);
+
         m_dashboard->setIntakepress(packageADV3[1]);
         m_dashboard->setPressureV(packageADV3[2]);
         m_dashboard->setThrottleV(packageADV3[3]);
         m_dashboard->setPrimaryinp(packageADV3[4]);
         m_dashboard->setFuelc(packageADV3[5]);
-        m_dashboard->setLeadingign(packageADV3[6]);
-        m_dashboard->setTrailingign(packageADV3[7]);
         m_dashboard->setpim(advboost);
-        m_dashboard->setWatertemp(packageADV3[10]);
-        m_dashboard->setIntaketemp(packageADV3[11]);
         m_dashboard->setKnock(packageADV3[12]);
-        m_dashboard->setBatteryV(packageADV3[13]);
-        m_dashboard->setSpeed(packageADV3[14]);
+
     }
 }
 
@@ -934,6 +937,9 @@ void Apexi::decodeMapIndices(QByteArray rawmessagedata) {
 
     packageMap[0] = mul[0] * info->Map_N + add[0]; // rpm (column)
     packageMap[1] = mul[0] * info->Map_P + add[0]; // load (row)
+
+    m_dashboard->setMapN(packageMap[0]);
+    m_dashboard->setMapP(packageMap[1]);
 }
 
 void Apexi::decodeBasic(QByteArray rawmessagedata) {

@@ -420,6 +420,9 @@ class DashBoard : public QObject
     void setMAFactivity(const qreal &MAFactivity);
     void setO2volt_2(const qreal &O2volt_2);
 
+    void setMapN(const int &mapN);
+    void setMapP(const int &mapP);
+
 
 
     //Boost
@@ -794,6 +797,9 @@ class DashBoard : public QObject
     qreal BoostDuty() const;
     qreal MAFactivity() const;
     qreal O2volt_2() const;
+
+    int mapN() const;
+    int mapP() const;
 
     //Boost
     qreal pim() const;
@@ -1521,6 +1527,10 @@ private:
     qreal m_BoostDuty;
     qreal m_MAFactivity;
     qreal m_O2volt_2;
+
+    // Apexi map indices
+    int m_MapN;
+    int m_MapP;
 
 
     //Boost
