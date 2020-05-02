@@ -968,7 +968,7 @@ void Apexi::decodeVersion(QByteArray rawmessagedata)
 }
 */
 void Apexi::decodeInit(QByteArray rawmessagedata) {
-    cout << "Init raw msg:" << QString(rawmessagedata).toStdString() << enld;
+    cout << "Init raw msg:" << QString(rawmessagedata).toStdString() << endl;
     const QString modelname = QString(rawmessagedata).mid(2, 8);
     //Mazda
     if (modelname == "13B1    " || modelname == "13B-REW " || modelname == "13B-REW2" || modelname == "13B-REW3" ||
