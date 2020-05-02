@@ -392,7 +392,7 @@ void Apexi::updateAutoTuneLogs() {
              << ", AFR:" << afr
              << ", Tps:" << tpsVolt
              << ", TimeDelta:" << timeDelta
-             << ", TpsChangeRate:" << setprecision(3) << tpsChangeRate << endl;
+             << ", TpsChangeRate:" << setprecision(3) << fixed << 100 * tpsChangeRate << endl;
     }
 
     if (shouldUpdateAfr) {
