@@ -360,7 +360,7 @@ void Apexi::updateAutoTuneLogs() {
              << " Updating fuel data:" << shouldUpdateAfr << " Water temp:" << waterTemp
              << " RpmIdx:" << rpmIdx << " LoadIdx:" <<  loadIdx
              << " Rpm:" << rpm << " Speed:" << speed
-             << " AFR:" << afr << " Tps:" << tps) << endl;
+             << " AFR:" << afr << " Tps:" << tps << endl;
     }
 
     if (shouldUpdateAfr) {
