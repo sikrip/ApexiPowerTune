@@ -129,7 +129,7 @@ int logLevel = 1; // 0: off, 1: connect, disconnect etc, 2: all
 
 // Used logging messages in fixed intervals
 long logSamplesCount = 0;
-const int LOG_INTERVAL = 100;
+const int LOG_INTERVAL = 1000;
 
 Apexi::Apexi(QObject *parent)
         : QObject(parent), m_dashboard(Q_NULLPTR) {
@@ -346,6 +346,7 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
 void Apexi::updateAutoTuneLogs() {
     const int rpmIdx = packageMap[0]; // col MapN
     const int loadIdx = packageMap[1];// row MapP
+    const double speed = (double) m_dashboard->speed();
     const double rpm = (double) m_dashboard->rpm(); // packageBasic[3];
     const double waterTemp = (double) m_dashboard->Watertemp(); // packageBasic[7];
     const double afr = (double) AN3AN4calc; // wideband is connected to An3-AN4
@@ -354,11 +355,12 @@ void Apexi::updateAutoTuneLogs() {
     const bool shouldUpdateAfr = rpmIdx <= MAX_AUTOTUNE_RPM_IDX && loadIdx < MAX_AUTOTUNE_LOAD_IDX &&
                                  waterTemp >= MIN_AUTOTUNE_WATER_TEMP && rpm > MIN_AUTOTUNE_RPM;
 
-    if (logLevel > 0 && logSamplesCount++ % LOG_INTERVAL) { // log every 50 samples for initial debugging
-        cout << "Updating fuel data:" << shouldUpdateAfr << " Water temp:" << waterTemp
+    if (logLevel > 0 && logSamplesCount++ % 1 /* LOG_INTERVAL */) {
+        cout << QTime::currentTime().toString("hh:mm:ss.zzz").toStdString()
+             << " Updating fuel data:" << shouldUpdateAfr << " Water temp:" << waterTemp
              << " RpmIdx:" << rpmIdx << " LoadIdx:" <<  loadIdx
-             << " Rpm: " << rpm << " AFR:" << afr
-             << " Tps: " << m_dashboard->ThrottleV() << endl;
+             << " Rpm:" << rpm << " Speed:" << speed
+             << " AFR:" << afr << " Tps:" << tps) << endl;
     }
 
     if (shouldUpdateAfr) {
