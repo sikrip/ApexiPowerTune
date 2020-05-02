@@ -126,8 +126,8 @@ const double MIN_AUTOTUNE_WATER_TEMP = 75;
 const double MIN_AUTOTUNE_RPM = 500;
 const double MIN_TPS_VOLT = 0.56;
 const double MAX_TPS_VOLT = 4.024;
-const double MAX_AUTOTUNE_TPS_CHANGE_RATE = 0.15;
-const double MIN_AUTOTUNE_TPS_CHANGE_RATE = -0.15;
+const double MAX_AUTOTUNE_TPS_CHANGE_RATE = 0.015; // volt / millisecond
+const double MIN_AUTOTUNE_TPS_CHANGE_RATE = -0.015;
 const double MIN_AUTOTUNE_SPEED = 5; // km/h
 
 double lastTpsVolt = MIN_TPS_VOLT;
@@ -392,7 +392,7 @@ void Apexi::updateAutoTuneLogs() {
              << ", AFR:" << afr
              << ", Tps:" << tpsVolt
              << ", TimeDelta:" << timeDelta
-             << ", TpsChangeRate:" << tpsChangeRate << endl;
+             << ", TpsChangeRate:" << setprecision(3) << tpsChangeRate << endl;
     }
 
     if (shouldUpdateAfr) {
