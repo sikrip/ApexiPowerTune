@@ -355,7 +355,7 @@ void Apexi::updateAutoTuneLogs() {
     const bool shouldUpdateAfr = rpmIdx <= MAX_AUTOTUNE_RPM_IDX && loadIdx < MAX_AUTOTUNE_LOAD_IDX &&
                                  waterTemp >= MIN_AUTOTUNE_WATER_TEMP && rpm > MIN_AUTOTUNE_RPM;
 
-    if (logLevel > 0 && logSamplesCount++ % 1 /* LOG_INTERVAL */) {
+    if (logLevel > 0 /* && logSamplesCount++ % LOG_INTERVAL */) {
         cout << QTime::currentTime().toString("hh:mm:ss.zzz").toStdString()
              << " Updating fuel data:" << shouldUpdateAfr << " Water temp:" << waterTemp
              << " RpmIdx:" << rpmIdx << " LoadIdx:" <<  loadIdx
