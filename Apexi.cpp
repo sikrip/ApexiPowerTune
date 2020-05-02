@@ -137,7 +137,7 @@ QTime lastLogTime = QTime::currentTime();
 int logLevel = 1;
 // Used for logging messages in fixed intervals
 long logSamplesCount = 0;
-const int LOG_INTERVAL = 1;
+const int LOG_INTERVAL = 5;
 
 Apexi::Apexi(QObject *parent)
         : QObject(parent), m_dashboard(Q_NULLPTR) {
