@@ -362,7 +362,7 @@ void Apexi::updateAutoTuneLogs() {
     const double afr = (double) AN3AN4calc; // wideband is connected to An3-AN4
     const double tpsVolt = (double) m_dashboard->ThrottleV();
 
-    const double timeDelta = lastLogTime.msecsTo(now)
+    const double timeDelta = lastLogTime.msecsTo(now);
     const double tpsChangeRate = (tpsVolt - lastTpsVolt) / timeDelta;
     lastLogTime = now;
     lastTpsVolt = tpsVolt;
