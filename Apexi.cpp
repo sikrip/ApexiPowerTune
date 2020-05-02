@@ -362,7 +362,7 @@ void Apexi::updateAutoTuneLogs() {
     const double afr = (double) AN3AN4calc; // wideband is connected to An3-AN4
     const double tpsVolt = (double) m_dashboard->ThrottleV();
 
-    const doulbe tpsChangeRate = (tpsVolt - lastTpsVolt) / lastLogTime.msecsTo(now);
+    const double tpsChangeRate = (tpsVolt - lastTpsVolt) / lastLogTime.msecsTo(now);
     lastLogTime = now;
     lastTpsVolt = tpsVolt;
 
@@ -378,7 +378,7 @@ void Apexi::updateAutoTuneLogs() {
         tpsChangeRate <= MAX_AUTOTUNE_TPS_CHANGE_RATE &&
         tpsChangeRate >= MIN_AUTOTUNE_TPS_CHANGE_RATE &&
         // Auto tune only when stationary or moving with the throttle pressed
-        (speed <= MIN_AUTOTUNE_SPEED || speed > MIN_AUTOTUNE_SPEED && tpsVolt > MIN_TPS_VOLT);
+        (speed <= MIN_AUTOTUNE_SPEED || (speed > MIN_AUTOTUNE_SPEED && tpsVolt > MIN_TPS_VOLT));
 
     if (logLevel > 0 && (logSamplesCount++ % LOG_INTERVAL) == 0) {
         cout << QTime::currentTime().toString("hh:mm:ss.zzz").toStdString()
