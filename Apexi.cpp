@@ -126,8 +126,8 @@ const double MIN_AUTOTUNE_WATER_TEMP = 75;
 const double MIN_AUTOTUNE_RPM = 500;
 const double MIN_TPS_VOLT = 0.56;
 const double MAX_TPS_VOLT = 4.024;
-const double MAX_AUTOTUNE_TPS_CHANGE_RATE = 0.015; // volt / millisecond
-const double MIN_AUTOTUNE_TPS_CHANGE_RATE = -0.015;
+const double MAX_AUTOTUNE_TPS_CHANGE_RATE = 15; // kilo-volt / millisecond
+const double MIN_AUTOTUNE_TPS_CHANGE_RATE = -15;
 const double MIN_AUTOTUNE_SPEED = 5; // km/h
 
 double lastTpsVolt = MIN_TPS_VOLT;
@@ -363,7 +363,7 @@ void Apexi::updateAutoTuneLogs() {
     const double tpsVolt = (double) m_dashboard->ThrottleV();
 
     const double timeDelta = lastLogTime.msecsTo(now);
-    const double tpsChangeRate = (tpsVolt - lastTpsVolt) / timeDelta;
+    const double tpsChangeRate = 100 * (tpsVolt - lastTpsVolt) / timeDelta;
     lastLogTime = now;
     lastTpsVolt = tpsVolt;
 
@@ -392,7 +392,7 @@ void Apexi::updateAutoTuneLogs() {
              << ", AFR:" << afr
              << ", Tps:" << tpsVolt
              << ", TimeDelta:" << timeDelta
-             << ", TpsChangeRate:" << setprecision(3) << fixed << 100 * tpsChangeRate << endl;
+             << ", TpsChangeRate:" << setprecision(3) << fixed << tpsChangeRate << endl;
     }
 
     if (shouldUpdateAfr) {
