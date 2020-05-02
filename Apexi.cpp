@@ -968,9 +968,6 @@ void Apexi::decodeVersion(QByteArray rawmessagedata)
 }
 */
 void Apexi::decodeInit(QByteArray rawmessagedata) {
-    cout << "Init raw msg:" << QString(rawmessagedata).toStdString() << endl;
-    cout << "Init raw msg(2,8):" << QString(rawmessagedata).mid(2, 8).toStdString() << endl;
-    cout << "Init raw msg(3,8):" << QString(rawmessagedata).mid(3, 8).toStdString() << endl;
     const QString modelname = QString(rawmessagedata).mid(2, 8);
     //Mazda
     if (modelname == "13B1    " || modelname == "13B-REW " || modelname == "13B-REW2" || modelname == "13B-REW3" ||
@@ -993,7 +990,7 @@ void Apexi::decodeInit(QByteArray rawmessagedata) {
         Model = 2;
     }
     //Toyota
-    if (modelname == "TOYOTA-L" || modelname == "1ZZ-FE  " || modelname == "1ZZ-FET " || modelname == "2ZZ-GE  " ||
+    if (modelname == "TOYOTA-L" || modelname == "1ZZ-FE  " || modelname == "1ZZ-FET " || modelname == " 2ZZ-GE " ||
         modelname == "3S-GE   " || modelname == "3SGET   " || modelname == "1JZ-GTE " || modelname == "1JZGT-AT" ||
         modelname == "4A-G1   " || modelname == "4A-G2   " || modelname == "1JGT1PRO" || modelname == "TOYOTA-D" ||
         modelname == "4A-GE   " || modelname == "4A-GE1  " || modelname == "4A-GE2  " || modelname == "4A-GE3  " ||
