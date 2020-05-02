@@ -968,7 +968,7 @@ void Apexi::decodeVersion(QByteArray rawmessagedata)
 }
 */
 void Apexi::decodeInit(QByteArray rawmessagedata) {
-    const QString modelname = QString(rawmessagedata).mid(2, 8);
+    const QString modelname = QString(rawmessagedata).mid(3, 8);
     //Mazda
     if (modelname == "13B1    " || modelname == "13B-REW " || modelname == "13B-REW2" || modelname == "13B-REW3" ||
         modelname == "13BT1PRO" || modelname == "13BR1PRO" || modelname == "13BR2PRO" || modelname == "13BR3PRO") {
@@ -1024,7 +1024,11 @@ void Apexi::decodeInit(QByteArray rawmessagedata) {
         modelname == "4G63-D7 ") {
         Model = 3;
     }
-    Model = 3;
+
+    if (Model == 0) {
+        cerr << "Could not recognize platform " << modelname.toStdString() << endl;
+    }
+
     if (logLevel > 0) {
         cout << "Decode Init. Platform: " << modelname.toStdString() << " Model: "
              << Model << " Ecu Idx: " << m_dashboard->ecu() << endl;
