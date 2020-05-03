@@ -729,11 +729,11 @@ void DashBoard::setO2volt_2(const qreal &O2volt_2)
 }
 
 void DashBoard::setMapN(const int &mapN) {
-    m_mapN = mapN;
+    m_MapN = mapN;
 }
 
 void DashBoard::setMapP(const int &mapP) {
-    m_mapP = mapP;
+    m_MapP = mapP;
 }
 
 

@@ -69,8 +69,8 @@ void datalogger::updateLog()
                     << m_dashboard->Watertemp()  << "\t"
                     << m_dashboard->Intaketemp()  << "\t"
                     << m_dashboard->BatteryV()  << "\t"
-                    << m_dashboard->auxcalc2()  << "\t"
-                    << m_dashboard->auxcalc1()  << "\t"
+                    << m_dashboard->auxcalc2()  << "\t" // AFR
+                    << m_dashboard->auxcalc1()  << "\t" // Oil Temp
 
                     << m_dashboard->mapN()  << "\t"
                     << m_dashboard->mapP()  << "\t"
