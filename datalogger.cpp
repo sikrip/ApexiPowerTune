@@ -28,7 +28,7 @@ datalogger::datalogger(DashBoard *dashboard, QObject *parent)
 void datalogger::startLog(QString Logfilename)
 {
         connect(&m_updatetimer, &QTimer::timeout, this, &datalogger::updateLog);
-        Log = Logfilename;
+        Log = QTime::currentTime().toString("hh_mm_ss").toStdString();
         loggerStartT = QTime::currentTime();
         m_updatetimer.start(100);
         datalogger::createHeader();
@@ -65,19 +65,41 @@ void datalogger::updateLog()
                     << (m_dashboard->PressureV() * 1000.0)  << "\t" // ?
                     << m_dashboard->rpm() << "\t"
                     << m_dashboard->speed()  << "\t"
+                    << 0  << "\t" // Boost
                     << m_dashboard->Knock()  << "\t"
                     << m_dashboard->Watertemp()  << "\t"
                     << m_dashboard->Intaketemp()  << "\t"
                     << m_dashboard->BatteryV()  << "\t"
-                    << m_dashboard->auxcalc2()  << "\t" // AFR
+                    << 0  << "\t" // AN1 raw
+                    << 0  << "\t" // AN2 raw
+                    << 0  << "\t" // AN3 raw
+                    << 0  << "\t" // AN4 raw
+                    << 0  << "\t" // OilPress
                     << m_dashboard->auxcalc1()  << "\t" // Oil Temp
-
+                    << m_dashboard->auxcalc2()  << "\t" // Wideband
+                    << 0  << "\t" // AN4 raw
                     << m_dashboard->mapN()  << "\t"
                     << m_dashboard->mapP()  << "\t"
-
                     << m_dashboard->rpm() << "\t"
+                    << 0 << "\t" // PIM
                     << m_dashboard->PressureV() << "\t" //m_dashboard->EngLoad()  << "\t" //?
+                    << m_dashboard->ThrottleV() << "\t"
                     << m_dashboard->Inj()  << "\t" // << m_dashboard->injms()  << ","
+                    << 0  << "\t" // Inj +/-
+                    << m_dashboard->Trailingign()  << "\t"
+                    << m_dashboard->Dwell()  << "\t"
+                    << 0  << "\t" // Boost
+                    << m_dashboard->InjDuty()  << "\t"
+                    << m_dashboard->Watertemp()  << "\t"
+                    << m_dashboard->Intaketemp()  << "\t"
+                    << m_dashboard->Knock()  << "\t"
+                    << m_dashboard->BatteryV()  << "\t"
+                    << m_dashboard->speed()  << "\t"
+                    << 0  << "\t" // ???(2)
+                    << 0  << "\t" // O2S1
+                    << 0  << "\t" // O2S2
+                    << 0  << "\t" // ???
+                    << 0  << "\t" // ???
                     << endl;
                     mFile.close(); // TODO closing the file each time?
                     break;
@@ -207,26 +229,50 @@ void datalogger::createHeader()
 
 QTextStream out(&mFile);
             switch(m_dashboard->ecu()) {
+                out << "[" << m_dashboard->Platform() << "]" << endl
+                    << "Time(S)" << "\t"
+                    << "InjDuty" << "\t"
+                    << "IgnTmng" << "\t"
+                    << "AirFlow" << "\t"
+                    << "EngRev" << "\t"
+                    << "Speed" << "\t"
+                    << "Boost" << "\t"
+                    << "Knock" << "\t"
+                    << "WtrTemp" << "\t"
+                    << "AirTemp" << "\t"
+                    << "BatVolt" << "\t"
+                    << "AN1 raw" << "\t"
+                    << "AN2 raw" << "\t"
+                    << "AN3 raw" << "\t"
+                    << "AN4 raw" << "\t"
+                    << "OilPress" << "\t"
+                    << "OilTemp" << "\t"
+                    << "WideBand" << "\t"
+                    << "AN4 raw" << "\t"
+                    << "MAPN" << "\t"
+                    << "MAPP" << "\t"
+                    << "RPM" << "\t"
+                    << "PIM" << "\t"
+                    << "AFL V" << "\t"
+                    << "VTA V" << "\t"
+                    << "Inj ms" << "\t"
+                    << "Inj +/-" << "\t"
+                    << "IGN" << "\t"
+                    << "Dwell" << "\t"
+                    << "Boost" << "\t"
+                    << "Duty" << "\t"
+                    << "WtrT" << "\t"
+                    << "AirT" << "\t"
+                    << "Knock" << "\t"
+                    << "BatV" << "\t"
+                    << "Speed" << "\t"
+                    << "???(2)" << "\t"
+                    << "O2S1" << "\t"
+                    << "O2S2" << "\t"
+                    << "???" << "\t"
+                    << "???" << "\t"
+                    << endl;
                 case 1: //Apexi
-                    out << "[" << m_dashboard->Platform() << "]" << endl
-                        << "Time(S)" << "\t"
-                        << "InjDuty" << "\t"
-                        << "IgnTmng" << "\t"
-                        << "AirFlow" << "\t"
-                        << "EngRev" << "\t"
-                        << "Speed" << "\t"
-                        << "Knock" << "\t"
-                        << "WtrTemp" << "\t"
-                        << "AirTemp" << "\t"
-                        << "BatVolt" << "\t"
-                        << "WideBand" << "\t"
-                        << "OilTemp" << "\t"
-                        << "MAPN" << "\t"
-                        << "MAPP" << "\t"
-                        << "RPM" << "\t"
-                        << "AFL V" << "\t"
-                        << "Inj ms" << "\t"
-                        << endl;
                     mFile.close();
                     break;
             case 0: ////Link ECU Generic CAN
