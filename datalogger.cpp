@@ -59,10 +59,10 @@ void datalogger::updateLog()
             switch(m_dashboard->ecu())
             {
             case 1: ////Apexi ECU
-                out << (loggerStartT.msecsTo(QTime::currentTime())) << "\t"
+                out << (loggerStartT.msecsTo(QTime::currentTime()) / 1000.0) << "\t"
                     << m_dashboard->InjDuty()  << "\t"
-                    << m_dashboard->Ign()  << "\t" // << m_dashboard->Leadingign()  << "," << m_dashboard->Trailingign() << ","
-                    << m_dashboard->PressureV()  << "\t" // ?
+                    << m_dashboard->Leadingign()  << "\t" // << m_dashboard->Ign()  << "," << m_dashboard->Trailingign() << ","
+                    << (m_dashboard->PressureV() * 1000.0)  << "\t" // ?
                     << m_dashboard->rpm() << "\t"
                     << m_dashboard->speed()  << "\t"
                     << m_dashboard->Knock()  << "\t"
@@ -77,7 +77,7 @@ void datalogger::updateLog()
 
                     << m_dashboard->rpm() << "\t"
                     << m_dashboard->PressureV() << "\t" //m_dashboard->EngLoad()  << "\t" //?
-                    << m_dashboard->injms()  << "\t" // << m_dashboard->Inj()  << ","
+                    << m_dashboard->Inj()  << "\t" // << m_dashboard->injms()  << ","
                     << endl;
                     mFile.close(); // TODO closing the file each time?
                     break;
