@@ -58,7 +58,7 @@ void datalogger::updateLog()
 
             switch(m_dashboard->ecu())
             {
-            case 1: ////Apexi ECU
+                case 1: ////Apexi ECU
                 out << (loggerStartT.msecsTo(QTime::currentTime()) / 1000.0) << ","
                     << m_dashboard->rpm() << ","
                     << m_dashboard->InjDuty()  << ","
@@ -72,8 +72,8 @@ void datalogger::updateLog()
                     << 0  << "," // OilPress TODO
                     << m_dashboard->auxcalc1()  << "," // Oil Temp
                     << m_dashboard->auxcalc2()  << "," // Wideband
-                    << m_dashboard->mapN()  << ","
-                    << m_dashboard->mapP()  << ","
+                    << "P" << m_dashboard->mapP()  << ","
+                    << "N" << m_dashboard->mapN()  << ","
                     << m_dashboard->PressureV() << "," //m_dashboard->EngLoad()  << "," //?
                     << m_dashboard->ThrottleV() << ","
                     << m_dashboard->Inj()  << "," // << m_dashboard->injms()  << ","
@@ -223,8 +223,8 @@ void datalogger::createHeader()
                     << "OilPress" << ","
                     << "OilTemp" << ","
                     << "WideBand" << ","
-                    << "MAPN" << ","
                     << "MAPP" << ","
+                    << "MAPN" << ","
                     << "AFL V" << ","
                     << "VTA V" << ","
                     << "Inj ms" << ","
