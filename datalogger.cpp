@@ -59,47 +59,26 @@ void datalogger::updateLog()
             switch(m_dashboard->ecu())
             {
             case 1: ////Apexi ECU
-                out << (loggerStartT.msecsTo(QTime::currentTime()) / 1000.0) << "\t"
-                    << m_dashboard->InjDuty()  << "\t"
-                    << m_dashboard->Leadingign()  << "\t" // << m_dashboard->Ign()  << "," << m_dashboard->Trailingign() << ","
-                    << (m_dashboard->PressureV() * 1000.0)  << "\t" // ?
-                    << m_dashboard->rpm() << "\t"
-                    << m_dashboard->speed()  << "\t"
-                    << 0  << "\t" // Boost
-                    << m_dashboard->Knock()  << "\t"
-                    << m_dashboard->Watertemp()  << "\t"
-                    << m_dashboard->Intaketemp()  << "\t"
-                    << m_dashboard->BatteryV()  << "\t"
-                    << 0  << "\t" // AN1 raw
-                    << 0  << "\t" // AN2 raw
-                    << 0  << "\t" // AN3 raw
-                    << 0  << "\t" // AN4 raw
-                    << 0  << "\t" // OilPress
-                    << m_dashboard->auxcalc1()  << "\t" // Oil Temp
-                    << m_dashboard->auxcalc2()  << "\t" // Wideband
-                    << 0  << "\t" // AN4 raw
-                    << m_dashboard->mapN()  << "\t"
-                    << m_dashboard->mapP()  << "\t"
-                    << m_dashboard->rpm() << "\t"
-                    << 0 << "\t" // PIM
-                    << m_dashboard->PressureV() << "\t" //m_dashboard->EngLoad()  << "\t" //?
-                    << m_dashboard->ThrottleV() << "\t"
-                    << m_dashboard->Inj()  << "\t" // << m_dashboard->injms()  << ","
-                    << 0  << "\t" // Inj +/-
-                    << m_dashboard->Trailingign()  << "\t"
-                    << m_dashboard->Dwell()  << "\t"
-                    << 0  << "\t" // Boost
-                    << m_dashboard->InjDuty()  << "\t"
-                    << m_dashboard->Watertemp()  << "\t"
-                    << m_dashboard->Intaketemp()  << "\t"
-                    << m_dashboard->Knock()  << "\t"
-                    << m_dashboard->BatteryV()  << "\t"
-                    << m_dashboard->speed()  << "\t"
-                    << 0  << "\t" // ???(2)
-                    << 0  << "\t" // O2S1
-                    << 0  << "\t" // O2S2
-                    << 0  << "\t" // ???
-                    << 0  << "\t" // ???
+                out << (loggerStartT.msecsTo(QTime::currentTime()) / 1000.0) << ","
+                    << m_dashboard->rpm() << ","
+                    << m_dashboard->InjDuty()  << ","
+                    << m_dashboard->Leadingign()  << "," // << m_dashboard->Ign()  << "," << m_dashboard->Trailingign() << ","
+                    << (m_dashboard->PressureV() * 1000.0)  << "," // ?
+                    << m_dashboard->speed()  << ","
+                    << m_dashboard->Knock()  << ","
+                    << m_dashboard->Watertemp()  << ","
+                    << m_dashboard->Intaketemp()  << ","
+                    << m_dashboard->BatteryV()  << ","
+                    << 0  << "," // OilPress TODO
+                    << m_dashboard->auxcalc1()  << "," // Oil Temp
+                    << m_dashboard->auxcalc2()  << "," // Wideband
+                    << m_dashboard->mapN()  << ","
+                    << m_dashboard->mapP()  << ","
+                    << m_dashboard->PressureV() << "," //m_dashboard->EngLoad()  << "," //?
+                    << m_dashboard->ThrottleV() << ","
+                    << m_dashboard->Inj()  << "," // << m_dashboard->injms()  << ","
+                    << m_dashboard->Dwell()  << ","
+                    << m_dashboard->InjDuty()  << ","
                     << endl;
                     mFile.close(); // TODO closing the file each time?
                     break;
@@ -231,48 +210,26 @@ void datalogger::createHeader()
             switch(m_dashboard->ecu()) {
 
                 case 1: //Apexi
-                out << "[" << m_dashboard->Platform() << "]" << endl
-                    << "Time(S)" << "\t"
-                    << "InjDuty" << "\t"
-                    << "IgnTmng" << "\t"
-                    << "AirFlow" << "\t"
-                    << "EngRev" << "\t"
-                    << "Speed" << "\t"
-                    << "Boost" << "\t"
-                    << "Knock" << "\t"
-                    << "WtrTemp" << "\t"
-                    << "AirTemp" << "\t"
-                    << "BatVolt" << "\t"
-                    << "AN1 raw" << "\t"
-                    << "AN2 raw" << "\t"
-                    << "AN3 raw" << "\t"
-                    << "AN4 raw" << "\t"
-                    << "OilPress" << "\t"
-                    << "OilTemp" << "\t"
-                    << "WideBand" << "\t"
-                    << "AN4 raw" << "\t"
-                    << "MAPN" << "\t"
-                    << "MAPP" << "\t"
-                    << "RPM" << "\t"
-                    << "PIM" << "\t"
-                    << "AFL V" << "\t"
-                    << "VTA V" << "\t"
-                    << "Inj ms" << "\t"
-                    << "Inj +/-" << "\t"
-                    << "IGN" << "\t"
-                    << "Dwell" << "\t"
-                    << "Boost" << "\t"
-                    << "Duty" << "\t"
-                    << "WtrT" << "\t"
-                    << "AirT" << "\t"
-                    << "Knock" << "\t"
-                    << "BatV" << "\t"
-                    << "Speed" << "\t"
-                    << "???(2)" << "\t"
-                    << "O2S1" << "\t"
-                    << "O2S2" << "\t"
-                    << "???" << "\t"
-                    << "???" << "\t"
+                out << "Time(S)" << ","
+                    << "RPM" << ","
+                    << "InjDuty" << ","
+                    << "IgnTmng" << ","
+                    << "AirFlow" << ","
+                    << "Speed" << ","
+                    << "Knock" << ","
+                    << "WtrTemp" << ","
+                    << "AirTemp" << ","
+                    << "BatVolt" << ","
+                    << "OilPress" << ","
+                    << "OilTemp" << ","
+                    << "WideBand" << ","
+                    << "MAPN" << ","
+                    << "MAPP" << ","
+                    << "AFL V" << ","
+                    << "VTA V" << ","
+                    << "Inj ms" << ","
+                    << "Dwell" << ","
+                    << "Duty" << ","
                     << endl;
                     mFile.close();
                     break;
