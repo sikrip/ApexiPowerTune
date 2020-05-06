@@ -72,8 +72,8 @@ void datalogger::updateLog()
                     << 0  << "," // OilPress TODO
                     << m_dashboard->auxcalc1()  << "," // Oil Temp
                     << m_dashboard->auxcalc2()  << "," // Wideband
-                    << "P" << m_dashboard->mapP()  << ","
-                    << "N" << m_dashboard->mapN()  << ","
+                    << (m_dashboard->mapP() + 1)  << "," // Map N, Map P is zero based
+                    << (m_dashboard->mapN() + 1) << ","  // but in FCEdit start from 1
                     << m_dashboard->PressureV() << "," //m_dashboard->EngLoad()  << "," //?
                     << m_dashboard->ThrottleV() << ","
                     << m_dashboard->Inj()  << "," // << m_dashboard->injms()  << ","
