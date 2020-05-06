@@ -326,7 +326,7 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
 
         if (autoFuelMapUpdate && handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
-            
+
             if (logLevel>0 && getCurrentFuelMapWriteRequest() == 1) {
                     cout << "\nWriting fuel map..." << endl;
                     logFuelData(10);

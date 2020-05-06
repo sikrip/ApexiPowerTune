@@ -28,7 +28,7 @@ datalogger::datalogger(DashBoard *dashboard, QObject *parent)
 void datalogger::startLog(QString Logfilename)
 {
         connect(&m_updatetimer, &QTimer::timeout, this, &datalogger::updateLog);
-        Log = QTime::currentTime().toString("hh_mm_ss").toStdString();
+        Log = QTime::currentTime().toString("hh_mm_ss");
         loggerStartT = QTime::currentTime();
         m_updatetimer.start(100);
         datalogger::createHeader();
@@ -227,8 +227,10 @@ void datalogger::createHeader()
             if(!mFile.open(QFile::Append | QFile::Text)){
                            }
 
-QTextStream out(&mFile);
+            QTextStream out(&mFile);
             switch(m_dashboard->ecu()) {
+
+                case 1: //Apexi
                 out << "[" << m_dashboard->Platform() << "]" << endl
                     << "Time(S)" << "\t"
                     << "InjDuty" << "\t"
@@ -272,7 +274,6 @@ QTextStream out(&mFile);
                     << "???" << "\t"
                     << "???" << "\t"
                     << endl;
-                case 1: //Apexi
                     mFile.close();
                     break;
             case 0: ////Link ECU Generic CAN
