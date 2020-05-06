@@ -129,6 +129,9 @@ const double MAX_TPS_VOLT = 4.024;
 const double MAX_AUTOTUNE_TPS_CHANGE_RATE = 4; // volt / second
 const double MIN_AUTOTUNE_TPS_CHANGE_RATE = -4;
 const double MIN_AUTOTUNE_SPEED = 5; // km/h
+const double MAX_AUTOTUNE_TPS_VOLT = 3.0;
+
+bool autoFuelMapUpdate = false;
 
 double lastTpsVolt = MIN_TPS_VOLT;
 QTime lastLogTime = QTime::currentTime();
@@ -321,12 +324,13 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         decodePfcData(m_apexiMsg);
         m_apexiMsg.clear();
 
-        if (handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
+        if (autoFuelMapUpdate && handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
+            // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
+            
             if (logLevel>0 && getCurrentFuelMapWriteRequest() == 1) {
                     cout << "\nWriting fuel map..." << endl;
                     logFuelData(10);
             }
-            // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
             QByteArray writePacket = QByteArray::fromRawData(getNextFuelMapWritePacket(), MAP_WRITE_PACKET_LENGTH);
             if (logLevel>1) {
                 cout << "Sending map write packet: " << writePacket.toHex().toStdString() << endl;
@@ -378,6 +382,8 @@ void Apexi::updateAutoTuneLogs() {
         // Do not auto tune on sudden throttle changes (do not mess with accel enrich etc)
         tpsChangeRate <= MAX_AUTOTUNE_TPS_CHANGE_RATE &&
         tpsChangeRate >= MIN_AUTOTUNE_TPS_CHANGE_RATE &&
+        // Do not autotune near WOT
+        tpsVolt <= MAX_AUTOTUNE_TPS_VOLT &&
         // Auto tune only when stationary or moving with the throttle pressed
         (speed <= MIN_AUTOTUNE_SPEED || (speed > MIN_AUTOTUNE_SPEED && tpsVolt > MIN_TPS_VOLT));
 
