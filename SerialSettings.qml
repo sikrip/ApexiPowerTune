@@ -763,6 +763,9 @@ Quick1.TabView {
                     Connect.setWeight(weight.text);
                     Apexi.calculatorAux(an1V0.text,an2V5.text,an3V0.text,an4V5.text,unitaux1.text,unitaux2.text);
                     connected = 1;
+                    if (loggerswitch.checked == false) {
+                        loggerswitch.clicked();
+                    }
                 }
             }
 
