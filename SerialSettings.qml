@@ -322,12 +322,17 @@ Quick1.TabView {
                             inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhPreferLowercase | Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
                             Component.onCompleted: {transferSettings.sendSettings() }
                         }
+                        Text {
+                            text: "AutoTune :"
+                            font.pixelSize: windowbackround.width / 55
+                            color: "white"
+                        }
                         Switch {
                             id: autoTuneSwitch
                             width: windowbackround.width / 5
                             height: windowbackround.height /15
                             font.pixelSize: windowbackround.width / 55
-                            text: qsTr("AutoTune")
+                            text: qsTr("Off/On")
                             Component.onCompleted: {
                                 autoTuneItem.toggle()
                             }
