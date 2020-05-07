@@ -270,17 +270,6 @@ void Apexi::readyToRead() {
         cout << "readyToRead callback." << endl;
     }
     m_readData = m_serialport->readAll();
-    /*
-    //Test enable raw message log
-      QString fileName = "RawMessage.txt";
-      QFile mFile(fileName);
-      if(!mFile.open(QFile::Append | QFile::Text)){
-      }
-      QTextStream out(&mFile);
-      out << m_readData.toHex() <<endl;
-      mFile.close();
-      // Test End
-    */
     m_dashboard->setRecvData(QString("Receive Data : " + m_readData.toHex()));
     Apexi::decodeResponseAndSendNextRequest(m_readData);
 }
@@ -327,7 +316,7 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         if (autoFuelMapUpdate && handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
 
-            if (logLevel>0 && getCurrentFuelMapWriteRequest() == 1) {
+            if (logLevel>1 && getCurrentFuelMapWriteRequest() == 1) {
                     cout << "\nWriting fuel map..." << endl;
                     logFuelData(10);
             }
@@ -387,7 +376,7 @@ void Apexi::updateAutoTuneLogs() {
         // Auto tune only when stationary or moving with the throttle pressed
         (speed <= MIN_AUTOTUNE_SPEED || (speed > MIN_AUTOTUNE_SPEED && tpsVolt > MIN_TPS_VOLT));
 
-    if (logLevel > 0 && (logSamplesCount++ % LOG_INTERVAL) == 0) {
+    if (logLevel > 1 && (logSamplesCount++ % LOG_INTERVAL) == 0) {
         cout << lastLogTime.toString("hh:mm:ss.zzz").toStdString()
              << ", AutoTuning:" << (shouldUpdateAfr?"Yes":"No")
              << ", WaterTemp:" << waterTemp
@@ -509,8 +498,6 @@ void Apexi::handleBytesWritten(qint64 bytes) {
 void Apexi::writeRequestPFC(QByteArray p_request) {
     m_writeData = p_request;
     qint64 bytesWritten = m_serialport->write(p_request);
-    // m_dashboard->setSerialStat(QString("Sending Request " + p_request.toHex()));
-
     if (bytesWritten == -1) {
         m_dashboard->setSerialStat(m_serialport->errorString());
     } else if (bytesWritten != m_writeData.size()) {
@@ -707,7 +694,6 @@ void Apexi::Auxcalc(const QString &unitaux1, const qreal &an1V0, const qreal &an
 void Apexi::decodeAdv(QByteArray rawmessagedata) {
     fc_adv_info_t *info = reinterpret_cast<fc_adv_info_t *>(rawmessagedata.data());
     if (Model == 1) {
-
         packageADV[0] = info->RPM + add[0];
         packageADV[1] = info->Intakepress;
         packageADV[2] = info->PressureV * 0.001; //value in V
@@ -753,14 +739,6 @@ void Apexi::decodeAdv(QByteArray rawmessagedata) {
         m_dashboard->setna1(packageADV[19]);
         m_dashboard->setSecinjpulse(packageADV[20]);
         m_dashboard->setna2(packageADV[21]);
-
-
-        //    //qDebug() << "Time passed since last call"<< startTime.msecsTo(QTime::currentTime());
-        //odometer += ((startTime.msecsTo(QTime::currentTime())) * ((packageADV[16]) / 3600000)); // Odometer
-        //m_dashboard->setOdo(odometer);
-        // startTime.restart();
-
-
     }
     // Nissan and Subaru
     if (Model == 2) {
@@ -810,7 +788,6 @@ void Apexi::decodeAdv(QByteArray rawmessagedata) {
         m_dashboard->setO2volt_2(packageADV2[17]);
         m_dashboard->setThrottleV((packageADV2[18] * 100));
         m_dashboard->setTPS((packageADV2[18] * 100) / 4.38);
-
     }
     //Toyota
     if (Model == 3) {
@@ -866,7 +843,6 @@ void Apexi::decodeAdv(QByteArray rawmessagedata) {
         m_dashboard->setFuelc(packageADV3[5]);
         m_dashboard->setpim(advboost);
         m_dashboard->setKnock(packageADV3[12]);
-
     }
 }
 
@@ -924,17 +900,11 @@ void Apexi::decodeAux(QByteArray rawmessagedata) {
     packageAux[2] = mul[29] * info->AN3 + add[29];
     packageAux[3] = mul[29] * info->AN4 + add[29];
 
-    //qDebug()<< "AN1" << packageAux[0] ;
-    //qDebug()<< "AN2" << packageAux[1] ;
-    //qDebug()<< "AN3" << packageAux[2] ;
-    //qDebug()<< "AN4" << packageAux[3] ;
     //Analog1
     AN1AN2calc = (((((auxval2 - auxval1) * 0.2) * (packageAux[0] - packageAux[1]))) + auxval1);
     AN3AN4calc = ((((auxval4 - auxval3) * 0.2) * (packageAux[2] - packageAux[3])) + auxval3);
     m_dashboard->setauxcalc1(AN1AN2calc);
     m_dashboard->setauxcalc2(AN3AN4calc);
-    //qDebug()<< "AN1-AN2" << AN1AN2calc ;
-    //qDebug()<< "AN1-AN2" << AN3AN4calc ;
 }
 
 // Decodes map indices (MapN, MapP)
@@ -971,19 +941,7 @@ void Apexi::decodeBasic(QByteArray rawmessagedata) {
         Boost = (packageBasic[5] - 760);
     }
 
-/*
-    else{
-       // qDebug()<< "Mdl1" << packageBasic[5];
-        if (packageBasic[5] >= 0)
-        {
-            Boost = (packageBasic[5] -760) * 0.01;
-        }
-        else{
-            Boost = packageBasic[5] -760; // while boost pressure is negative show pressure in mmhg
-        }
-      }
-*/
-    //m_dashboard->setInjDuty(packageBasic[0]);
+    m_dashboard->setInjDuty(packageBasic[0]);
     m_dashboard->setLeadingign(packageBasic[1]);
     m_dashboard->setTrailingign(packageBasic[2]);
     m_dashboard->setrpm(packageBasic[3]);
@@ -993,24 +951,8 @@ void Apexi::decodeBasic(QByteArray rawmessagedata) {
     m_dashboard->setWatertemp(packageBasic[7]);
     m_dashboard->setIntaketemp(packageBasic[8]);
     m_dashboard->setBatteryV(packageBasic[9]);
-/*
-    QString fileName = "Basic.txt";
-    QFile mFile(fileName);
-    if(!mFile.open(QFile::Append | QFile::Text)){
-    }
-    QTextStream out(&mFile);
-    out << rawmessagedata.toHex() <<endl;
-    mFile.close();
-*/
 }
 
-/*
-  
-void Apexi::decodeVersion(QByteArray rawmessagedata)
-{
-    //    ui->lineVersion->setText (QString(rawmessagedata).mid(2,5));
-}
-*/
 void Apexi::decodeInit(QByteArray rawmessagedata) {
     const QString modelname = QString(rawmessagedata).mid(2, 8);
     //Mazda
