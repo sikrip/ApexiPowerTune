@@ -332,7 +332,7 @@ Quick1.TabView {
                             width: windowbackround.width / 5
                             height: windowbackround.height /15
                             font.pixelSize: windowbackround.width / 55
-                            text: qsTr("Off/On")
+                            text: qsTr("Off")
                             Component.onCompleted: {
                                 autoTuneItem.toggle()
                             }
@@ -741,8 +741,8 @@ Quick1.TabView {
                 id: autoTuneItem
                 property var autotuneOn: 0
                 function toggle() {
-                    if (autoTuneSwitch.checked == true) autoTuneItem.autotuneOn = 1, Apexi.enableAutoTune(true);
-                    if (autoTuneSwitch.checked == false) autoTuneItem.autotuneOn = 0, Apexi.enableAutoTune(false);
+                    if (autoTuneSwitch.checked == true) autoTuneItem.autotuneOn = 1, autoTuneSwitch.text = "On", Apexi.enableAutoTune(true);
+                    if (autoTuneSwitch.checked == false) autoTuneItem.autotuneOn = 0, autoTuneSwitch.text = "Off", Apexi.enableAutoTune(false);
                 }
             }
             Item {
