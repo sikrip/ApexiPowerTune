@@ -25,13 +25,12 @@ datalogger::datalogger(DashBoard *dashboard, QObject *parent)
 {
 }
 
-void datalogger::startLog(QString Logfilename)
-{
-        connect(&m_updatetimer, &QTimer::timeout, this, &datalogger::updateLog);
-        Log = QDate::currentDate().toString("log_dd.MM.yyyy") + QTime::currentTime().toString("_hh.mm.ss");
-        loggerStartT = QTime::currentTime();
-        m_updatetimer.start(100);
-        datalogger::createHeader();
+void datalogger::startLog() {
+    connect(&m_updatetimer, &QTimer::timeout, this, &datalogger::updateLog);
+    Log = QDate::currentDate().toString("log_dd.MM.yyyy") + QTime::currentTime().toString("_hh.mm.ss");
+    loggerStartT = QTime::currentTime();
+    m_updatetimer.start(100);
+    datalogger::createHeader();
 }
 
 void datalogger::stopLog()

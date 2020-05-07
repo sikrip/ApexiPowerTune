@@ -322,20 +322,16 @@ Quick1.TabView {
                             inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhPreferLowercase | Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
                             Component.onCompleted: {transferSettings.sendSettings() }
                         }
-                        Text
-                        {
-                            text: "Logfile name:"
-                            font.pixelSize: windowbackround.width / 55
-                            color: "white"
-                        }
-                        TextField {
-                            id: logfilenameSelect
-                            text: qsTr("DataLog")
+                        Switch {
+                            id: autoTuneSwitch
                             width: windowbackround.width / 5
                             height: windowbackround.height /15
                             font.pixelSize: windowbackround.width / 55
-                            inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhPreferLowercase | Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
-                            //enterKeyAction: EnterKeyAction.Next
+                            text: qsTr("AutoTune")
+                            Component.onCompleted: {
+                                autoTuneItem.toggle()
+                            }
+                            onCheckedChanged: autoTuneItem.toggle()
                         }
                         Text
                         {
@@ -731,8 +727,17 @@ Quick1.TabView {
                 property var loggeron: 0
                 function datalogger()
                 {
-                    if (loggerswitch.checked == true) logger.loggeron = 1, Logger.startLog(logfilenameSelect.text);
+                    if (loggerswitch.checked == true) logger.loggeron = 1, Logger.startLog();
                     if (loggerswitch.checked == false) logger.loggeron = 0,Logger.stopLog();
+                }
+            }
+            Item {
+                //Auto tune on off
+                id: autoTuneItem
+                property var autotuneOn: 0
+                function toggle() {
+                    if (autoTuneSwitch.checked == true) autoTuneItem.autotuneOn = 1, Apexi.enableAutoTune(true);
+                    if (autoTuneSwitch.checked == false) autoTuneItem.autotuneOn = 0, Apexi.enableAutoTune(false);
                 }
             }
             Item {

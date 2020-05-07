@@ -131,12 +131,12 @@ const double MIN_AUTOTUNE_TPS_CHANGE_RATE = -4;
 const double MIN_AUTOTUNE_SPEED = 5; // km/h
 const double MAX_AUTOTUNE_TPS_VOLT = 3.0;
 
-bool autoFuelMapUpdate = false;
+bool autoTuneEnabled = false;
 
 double lastTpsVolt = MIN_TPS_VOLT;
 QTime lastLogTime = QTime::currentTime();
 
-// 0: off, 1: connect, disconnect etc, 2: all
+// 0: off, 1: connect, disconnect write requests etc, 2: all
 int logLevel = 1;
 // Used for logging messages in fixed intervals
 long logSamplesCount = 0;
@@ -313,12 +313,12 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         decodePfcData(m_apexiMsg);
         m_apexiMsg.clear();
 
-        if (autoFuelMapUpdate && handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
+        if (autoTuneEnabled && handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
 
-            if (logLevel>1 && getCurrentFuelMapWriteRequest() == 1) {
-                    cout << "\nWriting fuel map..." << endl;
-                    logFuelData(10);
+            if (logLevel>0 && getCurrentFuelMapWriteRequest() == 1) {
+                cout << "\nWriting fuel map..." << endl;
+                logFuelData(10);
             }
             QByteArray writePacket = QByteArray::fromRawData(getNextFuelMapWritePacket(), MAP_WRITE_PACKET_LENGTH);
             if (logLevel>1) {
@@ -378,6 +378,7 @@ void Apexi::updateAutoTuneLogs() {
 
     if (logLevel > 1 && (logSamplesCount++ % LOG_INTERVAL) == 0) {
         cout << lastLogTime.toString("hh:mm:ss.zzz").toStdString()
+             << ", AutoTuneEnabled:" << (autoTuneEnabled?"Yes":"No")
              << ", AutoTuning:" << (shouldUpdateAfr?"Yes":"No")
              << ", WaterTemp:" << waterTemp
              << ", MapN:" << packageMap[0]
@@ -1050,6 +1051,10 @@ void Apexi::decodeSensorStrings(QByteArray rawmessagedata) {
     m_dashboard->setFlagString14(QString(rawmessagedata).mid(73, 3));
     m_dashboard->setFlagString15(QString(rawmessagedata).mid(76, 3));
     m_dashboard->setFlagString16(QString(rawmessagedata).mid(79, 3));
+}
+
+void Apexi::enableAutoTune(bool enable) {
+    autoTuneEnabled = enable;
 }
 
 void Apexi::calculatorAux(float aux1min, float aux2max, float aux3min, float aux4max, QString Auxunit1, QString Auxunit2) {
