@@ -140,7 +140,7 @@ QTime lastLogTime = QTime::currentTime();
 int logLevel = 1;
 // Used for logging messages in fixed intervals
 long logSamplesCount = 0;
-const int LOG_INTERVAL = 5;
+const int LOG_INTERVAL = 10;
 
 Apexi::Apexi(QObject *parent)
         : QObject(parent), m_dashboard(Q_NULLPTR) {
@@ -376,7 +376,7 @@ void Apexi::updateAutoTuneLogs() {
         // Auto tune only when stationary or moving with the throttle pressed
         (speed <= MIN_AUTOTUNE_SPEED || (speed > MIN_AUTOTUNE_SPEED && tpsVolt > MIN_TPS_VOLT));
 
-    if (logLevel > 1 && (logSamplesCount++ % LOG_INTERVAL) == 0) {
+    if (logLevel > 0 && (logSamplesCount++ % LOG_INTERVAL) == 0) {
         cout << lastLogTime.toString("hh:mm:ss.zzz").toStdString()
              << ", AutoTuneEnabled:" << (autoTuneEnabled?"Yes":"No")
              << ", AutoTuning:" << (shouldUpdateAfr?"Yes":"No")
