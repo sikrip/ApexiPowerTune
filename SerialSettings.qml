@@ -558,7 +558,7 @@ Quick1.TabView {
                             width: windowbackround.width / 5
                             height: windowbackround.height /15
                             font.pixelSize: windowbackround.width / 55
-                            text: qsTr("Data Logger")
+                            text: qsTr("Logging: Off")
                             Component.onCompleted: {logger.datalogger()}
                             onCheckedChanged: logger.datalogger()
                         }
@@ -732,8 +732,8 @@ Quick1.TabView {
                 property var loggeron: 0
                 function datalogger()
                 {
-                    if (loggerswitch.checked == true) logger.loggeron = 1, Logger.startLog();
-                    if (loggerswitch.checked == false) logger.loggeron = 0,Logger.stopLog();
+                    if (loggerswitch.checked == true) logger.loggeron = 1, loggerswitch.text = "Logging: On", Logger.startLog();
+                    if (loggerswitch.checked == false) logger.loggeron = 0, loggerswitch.text = "Logging: Off", Logger.stopLog();
                 }
             }
             Item {
