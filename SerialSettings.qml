@@ -730,12 +730,11 @@ Quick1.TabView {
                 //Logger on off function
                 id: logger
                 property var loggeron: 0
-                function datalogger()
-                {
+                function datalogger() {
                     if (loggerswitch.checked == true) logger.loggeron = 1, loggerswitch.text = "Logging: On", Logger.startLog();
                     if (loggerswitch.checked == false) logger.loggeron = 0, loggerswitch.text = "Logging: Off", Logger.stopLog();
-                }
-            }
+
+                }            }
             Item {
                 //Auto tune on off
                 id: autoTuneItem
@@ -767,9 +766,6 @@ Quick1.TabView {
                     if (loggerswitch.checked == false) {
                         // Star logging on connect
                         loggerswitch.checked = true;
-                        logger.loggeron = 1; 
-                        loggerswitch.text = "Logging: On";
-                        Logger.startLog();
                     }
                 }
             }
@@ -783,9 +779,6 @@ Quick1.TabView {
                     if (loggerswitch.checked == true) {
                         // Stop logging on disconnect
                         loggerswitch.checked = false;
-                        logger.loggeron = 0; 
-                        loggerswitch.text = "Logging: Off";
-                        Logger.stopLog();
                     }
                 }
             }
