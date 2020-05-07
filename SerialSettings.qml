@@ -763,20 +763,30 @@ Quick1.TabView {
                     Connect.setWeight(weight.text);
                     Apexi.calculatorAux(an1V0.text,an2V5.text,an3V0.text,an4V5.text,unitaux1.text,unitaux2.text);
                     connected = 1;
+                    
                     if (loggerswitch.checked == false) {
-                        loggerswitch.clicked();
+                        // Star logging on connect
+                        loggerswitch.checked = true;
+                        logger.loggeron = 1; 
+                        loggerswitch.text = "Logging: On";
+                        Logger.startLog();
                     }
                 }
             }
 
             //function to Disconnect
             Item {
-
                 id: functdisconnect
-                function disconnectfunc()
-                {
+                function disconnectfunc() {
                     Connect.closeConnection()
                     connected = 0;
+                    if (loggerswitch.checked == true) {
+                        // Stop logging on disconnect
+                        loggerswitch.checked = false;
+                        logger.loggeron = 0; 
+                        loggerswitch.text = "Logging: Off";
+                        Logger.stopLog();
+                    }
                 }
             }
 
