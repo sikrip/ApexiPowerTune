@@ -90,6 +90,7 @@ Quick1.TabView {
                     //property alias gpsBaud: serialGPSBaud.currentText
                     //property alias gpsBaudindex: serialGPSBaud.currentIndex
                     property alias ecuType: ecuSelect.currentText
+                    property alias closedLoop: closedLoopSwitch.checked
                     property alias auxunit1: unitaux1.text
                     property alias aux1: an1V0.text
                     property alias aux2: an2V5.text
@@ -323,20 +324,20 @@ Quick1.TabView {
                             Component.onCompleted: {transferSettings.sendSettings() }
                         }
                         Text {
-                            text: "AutoTune :"
+                            text: "Closed Loop :"
                             font.pixelSize: windowbackround.width / 55
                             color: "white"
                         }
                         Switch {
-                            id: autoTuneSwitch
+                            id: closedLoopSwitch
                             width: windowbackround.width / 5
                             height: windowbackround.height /15
                             font.pixelSize: windowbackround.width / 55
                             text: qsTr("Off")
                             Component.onCompleted: {
-                                autoTuneItem.toggle()
+                                closedLoopItem.toggle()
                             }
-                            onCheckedChanged: autoTuneItem.toggle()
+                            onCheckedChanged: closedLoopItem.toggle()
                         }
                         Text
                         {
@@ -736,12 +737,12 @@ Quick1.TabView {
 
                 }            }
             Item {
-                //Auto tune on off
-                id: autoTuneItem
-                property var autotuneOn: 0
+                // Closed loop on off
+                id: closedLoopItem
+                property var closedLoopOn: 0
                 function toggle() {
-                    if (autoTuneSwitch.checked == true) autoTuneItem.autotuneOn = 1, autoTuneSwitch.text = "On", Apexi.enableAutoTune(true);
-                    if (autoTuneSwitch.checked == false) autoTuneItem.autotuneOn = 0, autoTuneSwitch.text = "Off", Apexi.enableAutoTune(false);
+                    if (closedLoopSwitch.checked == true) closedLoopItem.closedLoopOn = 1, closedLoopSwitch.text = "On", Apexi.enableClosedLoop(true);
+                    if (closedLoopSwitch.checked == false) closedLoopItem.closedLoopOn = 0, closedLoopSwitch.text = "Off", Apexi.enableClosedLoop(false);
                 }
             }
             Item {

@@ -50,6 +50,7 @@ private:
 
     void sendPfcReadRequest();
 
+    bool isClosedLoopConditions();
     void updateAutoTuneLogs();
 
     double packageADV[33];
@@ -438,7 +439,7 @@ public
     void decodeSensorStrings(QByteArray rawmessagedata);
 
     void calculatorAux(float aux1min, float aux2max, float aux3min, float aux4max, QString Auxunit1, QString Auxunit2);
-    void enableAutoTune(bool enable);
+    void enableClosedLoop(bool enable);
 
     signals:
     void sig_adaptronicReadFinished();

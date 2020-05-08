@@ -118,9 +118,10 @@ double add[] = FC_INFO_ADD;
 /**
  * Limits the number of write requests to the fuel map.
  * A value lower than 8 will not write the entire fuel map.
+ * Value 4 will write up to 4600rpm.
  */
-const int FUEL_MAP_MAX_WRITE_REQUESTS = 3;
-const int MAX_AUTOTUNE_RPM_IDX = 6; // ~3250 rpm
+const int FUEL_MAP_MAX_WRITE_REQUESTS = 4;
+const int MAX_AUTOTUNE_RPM_IDX = 9; // ~4600 rpm
 const int MAX_AUTOTUNE_LOAD_IDX = 10; // ~7600 load
 const double MIN_AUTOTUNE_WATER_TEMP = 75;
 const double MIN_AUTOTUNE_RPM = 500;
@@ -131,7 +132,7 @@ const double MIN_AUTOTUNE_TPS_CHANGE_RATE = -4;
 const double MIN_AUTOTUNE_SPEED = 5; // km/h
 const double MAX_AUTOTUNE_TPS_VOLT = 3.0;
 
-bool autoTuneEnabled = false;
+bool closedLoopEnabled = false;
 
 double lastTpsVolt = MIN_TPS_VOLT;
 QTime lastLogTime = QTime::currentTime();
@@ -313,7 +314,7 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         decodePfcData(m_apexiMsg);
         m_apexiMsg.clear();
 
-        if (autoTuneEnabled && handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
+        if (isClosedLoopConditions() && handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
 
             if (logLevel>0 && getCurrentFuelMapWriteRequest() == 1) {
@@ -344,55 +345,74 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
     }
 }
 
-void Apexi::updateAutoTuneLogs() {
-    const QTime now = QTime::currentTime();
-
-    const int rpmIdx = packageMap[0]; // col MapN
-    const int loadIdx = packageMap[1];// row MapP
-    const double speed = (double) m_dashboard->speed();
-    const double rpm = (double) m_dashboard->rpm(); // packageBasic[3];
-    const double waterTemp = (double) m_dashboard->Watertemp(); // packageBasic[7];
-    const double afr = (double) AN3AN4calc; // wideband is connected to An3-AN4
+bool Apexi::isClosedLoopConditions() {
+    const int rpmIdx = packageMap[0]; // col MapN 0-based
+    const int loadIdx = packageMap[1];// row MapP 0-based
     const double tpsVolt = (double) m_dashboard->ThrottleV();
 
-    const double timeDeltaSeconds = lastLogTime.msecsTo(now) / 1000.0;
-    const double tpsChangeRate = (tpsVolt - lastTpsVolt) / timeDeltaSeconds;
-    lastLogTime = now;
-    lastTpsVolt = tpsVolt;
+    return closedLoopEnabled &&
+           rpmIdx <= MAX_AUTOTUNE_RPM_IDX &&
+           loadIdx <= MAX_AUTOTUNE_LOAD_IDX &&
+           tpsVolt <= MAX_AUTOTUNE_TPS_VOLT;
+}
 
-    const bool shouldUpdateAfr =
-        // Auto tune only when engine is warmed up
-        waterTemp >= MIN_AUTOTUNE_WATER_TEMP &&
-        // Auto tune only the lower RPM/Load parts of the map
-        rpmIdx <= MAX_AUTOTUNE_RPM_IDX &&
-        loadIdx < MAX_AUTOTUNE_LOAD_IDX &&
-        // Auto tune only when the engine is actually started
-        rpm > MIN_AUTOTUNE_RPM &&
-        // Do not auto tune on sudden throttle changes (do not mess with accel enrich etc)
-        tpsChangeRate <= MAX_AUTOTUNE_TPS_CHANGE_RATE &&
-        tpsChangeRate >= MIN_AUTOTUNE_TPS_CHANGE_RATE &&
-        // Do not autotune near WOT
-        tpsVolt <= MAX_AUTOTUNE_TPS_VOLT &&
-        // Auto tune only when stationary or moving with the throttle pressed
-        (speed <= MIN_AUTOTUNE_SPEED || (speed > MIN_AUTOTUNE_SPEED && tpsVolt > MIN_TPS_VOLT));
+void Apexi::updateAutoTuneLogs() {
+    if (closedLoopEnabled) {
+        // Update AFR only when the closed loop is enabled
 
-    if (logLevel > 0 && (logSamplesCount++ % LOG_INTERVAL) == 0) {
-        cout << lastLogTime.toString("hh:mm:ss.zzz").toStdString()
-             << ", AutoTuneEnabled:" << (autoTuneEnabled?"Yes":"No")
-             << ", AutoTuning:" << (shouldUpdateAfr?"Yes":"No")
-             << ", WaterTemp:" << waterTemp
-             << ", MapN:" << packageMap[0]
-             << ", MapP:" <<  packageMap[1]
-             << ", Rpm:" << rpm
-             << ", Speed:" << speed
-             << ", AFR:" << afr
-             << ", Tps:" << tpsVolt
-             << ", TimeDelta:" << timeDeltaSeconds
-             << ", TpsChangeRate:" << setprecision(3) << fixed << tpsChangeRate << endl;
-    }
+        const QTime now = QTime::currentTime();
 
-    if (shouldUpdateAfr) {
-        updateAFRData(rpmIdx, loadIdx, afr);
+        const int rpmIdx = packageMap[0]; // col MapN
+        const int loadIdx = packageMap[1];// row MapP
+        const double speed = (double) m_dashboard->speed();
+        const double rpm = (double) m_dashboard->rpm(); // packageBasic[3];
+        const double waterTemp = (double) m_dashboard->Watertemp(); // packageBasic[7];
+        const double afr = (double) AN3AN4calc; // wideband is connected to An3-AN4
+        const double tpsVolt = (double) m_dashboard->ThrottleV();
+
+        const double timeDeltaSeconds = lastLogTime.msecsTo(now) / 1000.0;
+        const double tpsChangeRate = (tpsVolt - lastTpsVolt) / timeDeltaSeconds;
+        lastLogTime = now;
+        lastTpsVolt = tpsVolt;
+
+        const bool shouldUpdateAfr =
+                // Auto tune only when engine is warmed up
+                waterTemp >= MIN_AUTOTUNE_WATER_TEMP &&
+                // Auto tune only the lower RPM/Load parts of the map
+                rpmIdx <= MAX_AUTOTUNE_RPM_IDX &&
+                loadIdx <= MAX_AUTOTUNE_LOAD_IDX &&
+                // Auto tune only when the engine is actually started
+                rpm > MIN_AUTOTUNE_RPM &&
+                // Do not auto tune on sudden throttle changes (do not mess with accel enrich etc)
+                tpsChangeRate <= MAX_AUTOTUNE_TPS_CHANGE_RATE &&
+                tpsChangeRate >= MIN_AUTOTUNE_TPS_CHANGE_RATE &&
+                // Do not autotune near WOT
+                tpsVolt <= MAX_AUTOTUNE_TPS_VOLT &&
+                // Auto tune only when stationary or moving with the throttle pressed
+                (speed <= MIN_AUTOTUNE_SPEED || (speed > MIN_AUTOTUNE_SPEED && tpsVolt > MIN_TPS_VOLT));
+
+        if (logLevel > 0 && (logSamplesCount++ % LOG_INTERVAL) == 0) {
+            cout << lastLogTime.toString("hh:mm:ss.zzz").toStdString()
+                 << ", ClosedLoopEnabled:" << (closedLoopEnabled ? "Yes" : "No")
+                 << ", AutoTuning:" << (shouldUpdateAfr ? "Yes" : "No")
+                 << ", WaterTemp:" << waterTemp
+                 << ", MapN:" << packageMap[0]
+                 << ", MapP:" << packageMap[1]
+                 << ", Rpm:" << rpm
+                 << ", Speed:" << speed
+                 << ", AFR:" << afr
+                 << ", Tps:" << tpsVolt
+                 << ", TimeDelta:" << timeDeltaSeconds
+                 << ", TpsChangeRate:" << setprecision(3) << fixed << tpsChangeRate << endl;
+        }
+
+        if (shouldUpdateAfr) {
+            updateAFRData(rpmIdx, loadIdx, afr);
+        }
+    } else {
+        if (logLevel > 0 && (logSamplesCount++ % LOG_INTERVAL) == 0) {
+            cout << "ClosedLoopEnabled: No" << endl;
+        }
     }
 }
 
@@ -828,14 +848,14 @@ void Apexi::decodeAdv(QByteArray rawmessagedata) {
         packageADV3[21] = 0;
 
 
-        // Set by basic info
+        // Skipping because already set by basic info
         // m_dashboard->setrpm(packageADV3[0]);
-        //m_dashboard->setLeadingign(packageADV3[6]);
-        //m_dashboard->setTrailingign(packageADV3[7]);
-        //m_dashboard->setWatertemp(packageADV3[10]);
-        //m_dashboard->setIntaketemp(packageADV3[11]);
-        //m_dashboard->setBatteryV(packageADV3[13]);
-        //m_dashboard->setSpeed(packageADV3[14]);
+        // m_dashboard->setLeadingign(packageADV3[6]);
+        // m_dashboard->setTrailingign(packageADV3[7]);
+        // m_dashboard->setWatertemp(packageADV3[10]);
+        // m_dashboard->setIntaketemp(packageADV3[11]);
+        // m_dashboard->setBatteryV(packageADV3[13]);
+        // m_dashboard->setSpeed(packageADV3[14]);
 
         m_dashboard->setIntakepress(packageADV3[1]);
         m_dashboard->setPressureV(packageADV3[2]);
@@ -1053,8 +1073,8 @@ void Apexi::decodeSensorStrings(QByteArray rawmessagedata) {
     m_dashboard->setFlagString16(QString(rawmessagedata).mid(79, 3));
 }
 
-void Apexi::enableAutoTune(bool enable) {
-    autoTuneEnabled = enable;
+void Apexi::enableClosedLoop(bool enable) {
+    closedLoopEnabled = enable;
 }
 
 void Apexi::calculatorAux(float aux1min, float aux2max, float aux3min, float aux4max, QString Auxunit1, QString Auxunit2) {

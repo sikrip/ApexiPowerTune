@@ -60,7 +60,7 @@ void datalogger::updateLog()
                 case 1: ////Apexi ECU
                 out << (loggerStartT.msecsTo(QTime::currentTime()) / 1000.0) << ","
                     << m_dashboard->rpm() << ","
-                    << m_dashboard->InjDuty()  << "," // Not working
+                    << m_dashboard->InjDuty()  << ","
                     << m_dashboard->Leadingign()  << ","
                     << (m_dashboard->PressureV() * 1000.0)  << ","
                     << m_dashboard->speed()  << ","
@@ -75,7 +75,7 @@ void datalogger::updateLog()
                     << (m_dashboard->mapN() + 1) << ","  // but in FCEdit start from 1
                     << m_dashboard->PressureV() << ","
                     << m_dashboard->ThrottleV() << ","
-                    << m_dashboard->injms()  << ","
+                    << m_dashboard->injms()  << "," // Not working
                     << m_dashboard->Dwell()  << "," // Not working
                     << endl;
                     mFile.close(); // TODO closing the file each time?
