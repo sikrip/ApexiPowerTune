@@ -913,15 +913,16 @@ void Apexi::decodeSensor(QByteArray rawmessagedata) {
 }
 
 void Apexi::decodeAux(QByteArray rawmessagedata) {
+    if (logLevel > 0 && (logSamplesCount++ % LOG_INTERVAL) == 0) {
+        cout << "Aux Packet: " << rawmessagedata.toHex().toStdString() << endl;
+    }
     fc_aux_info_t *info = reinterpret_cast<fc_aux_info_t *>(rawmessagedata.data());
-
 
     packageAux[0] = mul[29] * info->AN1 + add[29];
     packageAux[1] = mul[29] * info->AN2 + add[29];
     packageAux[2] = mul[29] * info->AN3 + add[29];
     packageAux[3] = mul[29] * info->AN4 + add[29];
 
-    //Analog1
     AN1AN2calc = (((((auxval2 - auxval1) * 0.2) * (packageAux[0] - packageAux[1]))) + auxval1);
     AN3AN4calc = ((((auxval4 - auxval3) * 0.2) * (packageAux[2] - packageAux[3])) + auxval3);
     m_dashboard->setauxcalc1(AN1AN2calc);
