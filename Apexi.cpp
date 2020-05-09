@@ -138,7 +138,7 @@ double lastTpsVolt = MIN_TPS_VOLT;
 QTime lastLogTime = QTime::currentTime();
 
 // 0: off, 1: connect, disconnect write requests etc, 2: all
-int logLevel = 2;
+int logLevel = 1;
 // Used for logging messages in fixed intervals
 long logSamplesCount = 0;
 const int LOG_INTERVAL = 10;
@@ -612,7 +612,7 @@ void Apexi::sendPfcReadRequest() {
             case AUX_REQUEST:
                 //Apexi::getAux();
                 Apexi::writeRequestPFC(QByteArray::fromHex("0002FD"));
-                expectedbytes = 11; // 1(id) +1(len) +8(payload) +1(ckecksum)
+                expectedbytes = 7; // 1(id) +1(len) +8(payload) +1(ckecksum)
                 break;
         }
     }
