@@ -612,7 +612,7 @@ void Apexi::sendPfcReadRequest() {
             case AUX_REQUEST:
                 //Apexi::getAux();
                 Apexi::writeRequestPFC(QByteArray::fromHex("0002FD"));
-                expectedbytes = 7;
+                expectedbytes = 11; // 1(id) +1(len) +8(payload) +1(ckecksum)
                 break;
         }
     }
