@@ -108,6 +108,7 @@ const int MAP_IDX_REQUEST = 12;
 const int SENSOR_DATA_REQUEST = 13;
 const int BASIC_DATA_REQUEST = 14;
 const int AUX_REQUEST = 15;
+const int AUX_REQUEST2 = 16;
 
 // TODO find why this is a state variable
 qreal advboost;
@@ -331,11 +332,11 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
             m_timer.start(700);
         } else {
             // Decide the next request to be sent to PFC
-            if (requestIndex < AUX_REQUEST) {
+            if (requestIndex < AUX_REQUEST2) {
                 // Once go through all requests (init, sensor strings, init, fuel map, adv data, map idx, sensor data, basic data, aux)
                 requestIndex++;
             } else {
-                // then cycle through live data requests ADV_DATA_REQUEST..AUX_REQUEST (adv data, map idx, sensor data, basic data, aux)
+                // then cycle through live data requests ADV_DATA_REQUEST..AUX_REQUEST2 (adv data, map idx, sensor data, basic data, aux)
                 requestIndex = ADV_DATA_REQUEST;
                 // New cycle of live data, so update the afr logs with the previous data
                 updateAutoTuneLogs();
@@ -612,7 +613,12 @@ void Apexi::sendPfcReadRequest() {
             case AUX_REQUEST:
                 //Apexi::getAux();
                 Apexi::writeRequestPFC(QByteArray::fromHex("0002FD"));
-                expectedbytes = 11; // 1(id) +1(len) +8(payload) +1(ckecksum)
+                expectedbytes = 7; // 1(id) +1(len) +4(payload) +1(ckecksum)
+                break;
+            case AUX_REQUEST2:
+                //Apexi::getAux();
+                Apexi::writeRequestPFC(QByteArray::fromHex("0002FD"));
+                expectedbytes = 7; // 1(id) +1(len) +4(payload) +1(ckecksum)
                 break;
         }
     }
