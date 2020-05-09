@@ -282,7 +282,7 @@ void Apexi::readyToRead() {
  */
 void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
     if (logLevel>1) {
-        cout << "decodeResponseAndSendNextRequest" << endl;
+        cout << "decodeResponseAndSendNextRequest: " << buffer.toHex().toStdString() << endl;
     }
     m_buffer.append(buffer);
     QByteArray startpattern = m_writeData.left(1);
