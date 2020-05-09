@@ -16,7 +16,8 @@ namespace ID {
         BasicData = 0xDA,
         Init = 0xF3,
         Version = 0xF5,
-        AuxData = 0x00,
+        AuxData = 0x00, // white datalogit
+        AuxDataBlack = 0x01,
         OldMapIndex = 0x68,
         OldSensorData = 0x6A,
         OldBasicData = 0x66,
@@ -192,14 +193,14 @@ private:
     struct fc_aux2_info_t {
 
         quint16 requesttype;
-        quint8 AN1;
-        quint8 AN2;
-        quint8 AN3;
-        quint8 AN4;
-        quint8 AN5;
-        quint8 AN6;
-        quint8 AN7;
-        quint8 AN8;
+        quint16 AN1;
+        quint16 AN2;
+        quint16 AN3;
+        quint16 AN4;
+        quint16 AN5;
+        quint16 AN6;
+        quint16 AN7;
+        quint16 AN8;
         quint8 checksum;
 
         fc_aux2_info_t parse(const QByteArray &);
@@ -428,6 +429,7 @@ public
     void decodeSensor(QByteArray rawmessagedata);
 
     void decodeAux(QByteArray rawmessagedata);
+    void decodeAuxBlack(QByteArray rawmessagedata);
 
     void decodeMapIndices(QByteArray rawmessagedata);
 
