@@ -913,7 +913,7 @@ void Apexi::decodeSensor(QByteArray rawmessagedata) {
 }
 
 void Apexi::decodeAux(QByteArray rawmessagedata) {
-    if (logLevel > 0 && (logSamplesCount++ % LOG_INTERVAL) == 0) {
+    if (logLevel > 1 && (logSamplesCount++ % LOG_INTERVAL) == 0) {
         cout << "Aux Packet: " << rawmessagedata.toHex().toStdString() << endl;
     }
     fc_aux_info_t *info = reinterpret_cast<fc_aux_info_t *>(rawmessagedata.data());
