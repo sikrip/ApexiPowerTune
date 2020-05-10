@@ -115,7 +115,7 @@ struct ReadPacket {
     QByteArray bytes;
     int responseSize;
 };
-ReadPacket READ_REQUESTS[16] = {
+struct ReadPacket READ_REQUESTS[16] = {
     { QByteArray::fromHex("0102FC"),   8 }, // Version (i.e 'V2.0.')
     { QByteArray::fromHex("F3020A"),  11 }, // Platform version (i.e ' 2ZZ-GE ')
     { QByteArray::fromHex("F50208"),   8 }, // Platform version (i.e. '2.71A')
@@ -127,12 +127,12 @@ ReadPacket READ_REQUESTS[16] = {
     { QByteArray::fromHex("B40249"), 103 }, // Fuel map (request 5 of 8)
     { QByteArray::fromHex("B50248"), 103 }, // Fuel map (request 6 of 8)
     { QByteArray::fromHex("B60247"), 103 }, // Fuel map (request 7 of 8)
-    { QByteArray::fromHex("B70246"), 103 }  // Fuel map (request 8 of 8)
+    { QByteArray::fromHex("B70246"), 103 },  // Fuel map (request 8 of 8)
     { QByteArray::fromHex("F0020D"), 33 }, // Advanced data
     { QByteArray::fromHex("DB0222"),  5 }, // Map indices
     { QByteArray::fromHex("DE021F"), 21 }, // Sensor data
-    { QByteArray::fromHex("010300FB"), 19 }, // Aux data (black)
-}
+    { QByteArray::fromHex("010300FB"), 19 } // Aux data (black)
+};
 
 const int MAX_REQUEST_IDX = 15;
 const int INIT_REQUEST_IDX = 0;
@@ -496,7 +496,7 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
                 break;
             case ID::Version:
                 // TODO
-                cout << "Version:": << rawmessagedata.toHex().toStdString() << endl
+                cout << "Version:" << rawmessagedata.toHex().toStdString() << endl;
                 break;
             case ID::FuelMapBatch1:
                 readFuelMap(1, rawmessagedata.data());
@@ -795,7 +795,7 @@ void Apexi::decodeAux(QByteArray rawmessagedata) {
     packageAux[2] = mul[29] * info->AN3 + add[29];
     packageAux[3] = mul[29] * info->AN4 + add[29];
 
-    AN1AN2calc = ((an1_2volt5 - an1_2volt0) * 0.2 * (packageAux[0] - packageAux[1]) + an1_2volt0;
+    AN1AN2calc = ((((an1_2volt5 - an1_2volt0) * 0.2) * (packageAux[0] - packageAux[1])) + an1_2volt0);
     AN3AN4calc = ((((an3_4volt5 - an3_4volt0) * 0.2) * (packageAux[2] - packageAux[3])) + an3_4volt0);
     m_dashboard->setauxcalc1(AN1AN2calc);
     m_dashboard->setauxcalc2(AN3AN4calc);
