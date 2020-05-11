@@ -38,6 +38,10 @@ QString Auxname1;
 QString Auxname2;
 
 /**
+ * The maximum voltage of the aux ports.
+ */
+const double MAX_AUX_VOLT = 5.0;
+/**
  * The value of the calculation for AN1-2 at volt 0
  */
 float an1_2volt0;
@@ -813,19 +817,19 @@ void Apexi::decodeAuxBlack(QByteArray rawmessagedata) {
 
     fc_aux2_info_t *info = reinterpret_cast<fc_aux2_info_t *>(rawmessagedata.data());
 
-    const double an1 = info -> AN1 * (1.0 / 204.5);
-    const double an2 = info -> AN2 * (1.0 / 204.5);
-    const double an3 = info -> AN3 * (1.0 / 204.5);
-    const double an4 = info -> AN4 * (1.0 / 204.5);
-    const double an5 = info -> AN5 * (1.0 / 204.5);
-    const double an6 = info -> AN6 * (1.0 / 204.5);
-    const double an7 = info -> AN7 * (1.0 / 204.5);
-    const double an8 = info -> AN8 * (1.0 / 204.5);
+    const double an1 = info -> AN1 * (1.0 / 204.0);
+    const double an2 = info -> AN2 * (1.0 / 204.0);
+    const double an3 = info -> AN3 * (1.0 / 204.0);
+    const double an4 = info -> AN4 * (1.0 / 204.0);
+    const double an5 = info -> AN5 * (1.0 / 204.0);
+    const double an6 = info -> AN6 * (1.0 / 204.0);
+    const double an7 = info -> AN7 * (1.0 / 204.0);
+    const double an8 = info -> AN8 * (1.0 / 204.0);
 
-    const double auxCalc1 = (an1_2volt5 - an1_2volt0) * (an1 - an2) + an1_2volt0;
-    const double auxCalc2 = (an3_4volt5 - an3_4volt0) * (an3 - an4) + an3_4volt0;
-    const double auxCalc3 = (an5_6volt5 - an5_6volt0) * (an5 - an6) + an5_6volt0;
-    const double auxCalc4 = (an7_8volt5 - an7_8volt0) * (an7 - an8) + an7_8volt0;
+    const double auxCalc1 = ((an1_2volt5 - an1_2volt0) / MAX_AUX_VOLT) * (an1 - an2) + an1_2volt0;
+    const double auxCalc2 = ((an3_4volt5 - an3_4volt0) / MAX_AUX_VOLT) * (an3 - an4) + an3_4volt0;
+    const double auxCalc3 = ((an5_6volt5 - an5_6volt0) / MAX_AUX_VOLT) * (an5 - an6) + an5_6volt0;
+    const double auxCalc4 = ((an7_8volt5 - an7_8volt0) / MAX_AUX_VOLT) * (an7 - an8) + an7_8volt0;
 
     if (logLevel > 1 && (logSamplesCount % LOG_INTERVAL) == 0) {
         cout << fixed << setprecision(3)
