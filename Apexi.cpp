@@ -469,8 +469,13 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
             case ID::AuxData:
                 Apexi::decodeAux(rawmessagedata);
                 break;
-            case ID::AuxDataBlack:
-                Apexi::decodeAuxBlack(rawmessagedata);
+            case ID::AuxDataBlack: // 01 is botch aux and .. 0102FC (datalogit version?)
+                if (requestIndex > FIRST_LIVE_DATA_REQUEST_IDX) {
+                    Apexi::decodeAuxBlack(rawmessagedata);
+                } else {
+                    // TODO
+                    cout << "Datalogit Version:" << rawmessagedata.toHex().toStdString() << endl;
+                }
                 break;
             case ID::MapIndex:
                 Apexi::decodeMapIndices(rawmessagedata);
@@ -563,7 +568,7 @@ void Apexi::sendPfcReadRequest() {
     // New Apexi Structure (Protocol 0), Protocol 1 removed, never used
     ReadPacket readPacket = READ_REQUESTS[requestIndex];
     if (logLevel>1) {
-        cout << "sendPfcReadRequest: " << readPacket.bytes.toHex().toStdString() << endl;
+        cout << "sendPfcReadRequest: " << requestIndex << "->" << readPacket.bytes.toHex().toStdString() << endl;
     }
     Apexi::writeRequestPFC(readPacket.bytes);
     expectedbytes = readPacket.responseSize;
@@ -824,20 +829,30 @@ void Apexi::decodeAuxBlack(QByteArray rawmessagedata) {
 
     if (logLevel > 1 && (logSamplesCount % LOG_INTERVAL) == 0) {
         cout << fixed << setprecision(3)
-             << "AN1: " << an1
-             << "AN2: " << an2
-             << "AN3: " << an3
-             << "AN4: " << an4
-             << "AN5: " << an5
-             << "AN6: " << an6
-             << "AN7: " << an7
-             << "AN8: " << an8 << endl;
+             << " an1_2volt0: " << an1_2volt0
+             << " an1_2volt5: " << an1_2volt5
+             << " an3_4volt0: " << an3_4volt0
+             << " an3_4volt5: " << an3_4volt5
+             << " an5_6volt0: " << an5_6volt0
+             << " an5_6volt5: " << an5_6volt5
+             << " an7_8volt0: " << an7_8volt0
+             << " an7_8volt5: " << an7_8volt5 << endl;
 
         cout << fixed << setprecision(3)
-             << "auxCalc1: " << auxCalc1
-             << "auxCalc2: " << auxCalc2
-             << "auxCalc3: " << auxCalc3
-             << "auxCalc4: " << auxCalc4 << endl;
+             << " AN1: " << an1
+             << " AN2: " << an2
+             << " AN3: " << an3
+             << " AN4: " << an4
+             << " AN5: " << an5
+             << " AN6: " << an6
+             << " AN7: " << an7
+             << " AN8: " << an8 << endl;
+
+        cout << fixed << setprecision(3)
+             << " auxCalc1: " << auxCalc1
+             << " auxCalc2: " << auxCalc2
+             << " auxCalc3: " << auxCalc3
+             << " auxCalc4: " << auxCalc4 << endl;
     }
     m_dashboard->setauxcalc1(auxCalc1);
     m_dashboard->setauxcalc2(auxCalc2);
