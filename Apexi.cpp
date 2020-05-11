@@ -42,9 +42,9 @@ QString Auxname2;
  */
 const double MAX_AUX_VOLT = 5.0;
 /**
- * Transform raw int value to volt
+ * Transform raw int value to volt for datalogit black.
  */
-const double AUX_VOLT_TRANSFORM = 1.0 / 206.5;
+const double AUX_BLACK_VOLT_TRANSFORM = 1.0 / 205.0;
 /**
  * The value of the calculation for AN1-2 at volt 0
  */
@@ -123,7 +123,7 @@ struct ReadPacket {
     QByteArray bytes;
     int responseSize;
 };
-ReadPacket READ_REQUESTS[18] = {
+ReadPacket READ_REQUESTS[17] = {
     { QByteArray::fromHex("F3020A"),  11 }, // Platform version (i.e ' 2ZZ-GE ')
     { QByteArray::fromHex("0102FC"),   8 }, // Version (i.e 'V2.0.')
     { QByteArray::fromHex("F50208"),   8 }, // Platform version (i.e. '2.71A')
@@ -141,11 +141,10 @@ ReadPacket READ_REQUESTS[18] = {
     { QByteArray::fromHex("DB0222"),  5 }, // Map indices
     { QByteArray::fromHex("DE021F"), 21 }, // Sensor data
     { QByteArray::fromHex("DA0223"), 23 }, // Basic data
-    { QByteArray::fromHex("010300FB"), 19 }, // Aux data (black)
-    { QByteArray::fromHex("0002FD"), 7 } // TODO remove
+    { QByteArray::fromHex("010300FB"), 19 } // Aux data (black)
 };
 
-const int MAX_REQUEST_IDX = 17;
+const int MAX_REQUEST_IDX = 16;
 const int INIT_REQUEST_IDX = 0;
 const int FIRST_LIVE_DATA_REQUEST_IDX = 12;
 
@@ -178,7 +177,7 @@ double lastTpsVolt = MIN_TPS_VOLT;
 QTime lastLogTime = QTime::currentTime();
 
 // 0: off, 1: info, 2: debug
-int logLevel = 2;
+int logLevel = 1;
 // Used for logging messages in fixed intervals
 long logSamplesCount = 0;
 const int LOG_INTERVAL = 10;
@@ -831,14 +830,14 @@ void Apexi::decodeAuxBlack(QByteArray rawmessagedata) {
 
     fc_aux2_info_t *info = reinterpret_cast<fc_aux2_info_t *>(rawmessagedata.data());
 
-    const double an1 = info -> AN1 * AUX_VOLT_TRANSFORM;
-    const double an2 = info -> AN2 * AUX_VOLT_TRANSFORM;
-    const double an3 = info -> AN3 * AUX_VOLT_TRANSFORM;
-    const double an4 = info -> AN4 * AUX_VOLT_TRANSFORM;
-    const double an5 = info -> AN5 * AUX_VOLT_TRANSFORM;
-    const double an6 = info -> AN6 * AUX_VOLT_TRANSFORM;
-    const double an7 = info -> AN7 * AUX_VOLT_TRANSFORM;
-    const double an8 = info -> AN8 * AUX_VOLT_TRANSFORM;
+    const double an1 = info -> AN1 * AUX_BLACK_VOLT_TRANSFORM;
+    const double an2 = info -> AN2 * AUX_BLACK_VOLT_TRANSFORM;
+    const double an3 = info -> AN3 * AUX_BLACK_VOLT_TRANSFORM;
+    const double an4 = info -> AN4 * AUX_BLACK_VOLT_TRANSFORM;
+    const double an5 = info -> AN5 * AUX_BLACK_VOLT_TRANSFORM;
+    const double an6 = info -> AN6 * AUX_BLACK_VOLT_TRANSFORM;
+    const double an7 = info -> AN7 * AUX_BLACK_VOLT_TRANSFORM;
+    const double an8 = info -> AN8 * AUX_BLACK_VOLT_TRANSFORM;
 
     const double auxCalc1 = ((an1_2volt5 - an1_2volt0) / MAX_AUX_VOLT) * (an1 - an2) + an1_2volt0;
     const double auxCalc2 = ((an3_4volt5 - an3_4volt0) / MAX_AUX_VOLT) * (an3 - an4) + an3_4volt0;
