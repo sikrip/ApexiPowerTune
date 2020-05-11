@@ -68,7 +68,7 @@ void datalogger::updateLog()
                     << m_dashboard->Watertemp()  << ","
                     << m_dashboard->Intaketemp()  << ","
                     << m_dashboard->BatteryV()  << ","
-                    << 0  << "," // OilPress TODO
+                    << m_dashboard->auxcalc3()  << "," // Oil Press TODO
                     << m_dashboard->auxcalc1()  << "," // Oil Temp
                     << m_dashboard->auxcalc2()  << "," // Wideband
                     << (m_dashboard->mapP() + 1)  << "," // Map N, Map P is zero based
@@ -218,9 +218,9 @@ void datalogger::createHeader()
                     << "WtrTemp" << ","
                     << "AirTemp" << ","
                     << "BatVolt" << ","
-                    << "OilPress" << ","
-                    << "OilTemp" << ","
-                    << "WideBand" << ","
+                    << "OilPress" << "," // TODO use be aux name
+                    << "OilTemp" << ","  // TODO use be aux name
+                    << "WideBand" << "," // TODO use be aux name
                     << "MAPP" << ","
                     << "MAPN" << ","
                     << "AFL V" << ","
