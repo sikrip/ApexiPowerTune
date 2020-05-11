@@ -28,14 +28,19 @@ qreal AN1AN2calc;
 qreal AN3AN4calc;
 
 /**
- * Depicts what is measured via AN1-2 (ex AFR)
+ * Depicts what is measured via AN1-2.
  */
 QString Auxname1;
 
 /**
- * Depicts what is measured via AN3-4 (ex AFR)
+ * Depicts what is measured via AN3-4.
  */
 QString Auxname2;
+
+/**
+ * Depicts what is measured via AN5-6.
+ */
+QString Auxname3;
 
 /**
  * The maximum voltage of the aux ports.
@@ -587,18 +592,6 @@ void Apexi::sendPfcReadRequest() {
     m_timer.start(700);
 }
 
-void Apexi::Auxcalc(const QString &unitaux1, const qreal &an1V0, const qreal &an2V5, const QString &unitaux2,
-                    const qreal &an3V0, const qreal &an4V5) {
-    qreal aux1min = an1V0;
-    qreal aux2max = an2V5;
-    qreal aux3min = an3V0;
-    qreal aux4max = an4V5;
-    QString Auxunit1 = unitaux1;
-    QString Auxunit2 = unitaux2;
-
-    Apexi::calculatorAux(aux1min, aux2max, aux3min, aux4max, Auxunit1, Auxunit2);
-}
-
 void Apexi::decodeAdv(QByteArray rawmessagedata) {
     fc_adv_info_t *info = reinterpret_cast<fc_adv_info_t *>(rawmessagedata.data());
     if (Model == 1) {
@@ -1026,14 +1019,27 @@ void Apexi::enableClosedLoop(bool enable) {
     closedLoopEnabled = enable;
 }
 
-void Apexi::calculatorAux(float aux1min, float aux2max, float aux3min, float aux4max, QString Auxunit1, QString Auxunit2) {
+void Apexi::setAuxCalcData(float aux1min, float aux1max, float aux2min, float aux2max, float aux3min, float aux3max, QString Auxunit1, QString Auxunit2, QString Auxunit3) {
     an1_2volt0 = aux1min;
-    an1_2volt5 = aux2max;
-    an3_4volt0 = aux3min;
-    an3_4volt5 = aux4max;
+    an1_2volt5 = aux1max;
+    an3_4volt0 = aux2min;
+    an3_4volt5 = aux2max;
+    an5_6volt0 = aux3min;
+    an5_6volt5 = aux3max;
     Auxname1 = Auxunit1;
     Auxname2 = Auxunit2;
-    qDebug() << Auxunit1 << an1_2volt0 << an1_2volt5 << Auxunit2 << an3_4volt0 << an3_4volt5;
+    Auxname3 = Auxunit3;
+
+    if (logLevel > 0) {
+        cout << "setAuxCalcData:"
+             << " an1_2volt0:" << an1_2volt0
+             << " an1_2volt5:" << an1_2volt5
+             << " an3_4volt0:" << an3_4volt0
+             << " an3_4volt5:" << an3_4volt5
+             << " an5_6volt0:" << an5_6volt0
+             << " an5_6volt5:" << an5_6volt5
+             << endl;
+    }
 }
 
 void Apexi::writeDashfile(const QString &gauge1, const QString &gauge2, const QString &gauge3, const QString &gauge4,

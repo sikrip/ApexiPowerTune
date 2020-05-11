@@ -381,9 +381,6 @@ public:
 
     Q_INVOKABLE void SetProtocol(const int &protocolselect);
 
-    Q_INVOKABLE void Auxcalc(const QString &unitaux1, const qreal &an1V0, const qreal &an2V5, const QString &unitaux2,
-                             const qreal &an3V0, const qreal &an4V5);
-
     Q_INVOKABLE void
     writeDashfile(const QString &gauge1, const QString &gauge2, const QString &gauge3, const QString &gauge4,
                   const QString &gauge5, const QString &gauge6);
@@ -440,7 +437,7 @@ public
 
     void decodeSensorStrings(QByteArray rawmessagedata);
 
-    void calculatorAux(float aux1min, float aux2max, float aux3min, float aux4max, QString Auxunit1, QString Auxunit2);
+    void setAuxCalcData(float aux1min, float aux1max, float aux2min, float aux2max, float aux3min, float aux3max, QString Auxunit1, QString Auxunit2, QString Auxunit3);
     void enableClosedLoop(bool enable);
 
     signals:
