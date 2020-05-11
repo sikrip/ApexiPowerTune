@@ -116,8 +116,8 @@ struct ReadPacket {
     int responseSize;
 };
 ReadPacket READ_REQUESTS[16] = {
-    { QByteArray::fromHex("0102FC"),   8 }, // Version (i.e 'V2.0.')
     { QByteArray::fromHex("F3020A"),  11 }, // Platform version (i.e ' 2ZZ-GE ')
+    { QByteArray::fromHex("0102FC"),   8 }, // Version (i.e 'V2.0.')
     { QByteArray::fromHex("F50208"),   8 }, // Platform version (i.e. '2.71A')
     { QByteArray::fromHex("DD0220"),  83 }, // Sensor labels (i.e. '2.71A')
     { QByteArray::fromHex("B0024D"), 103 }, // Fuel map (request 1 of 8)
