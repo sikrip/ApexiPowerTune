@@ -797,7 +797,7 @@ void Apexi::decodeSensor(QByteArray rawmessagedata) {
 }
 
 void Apexi::decodeAux(QByteArray rawmessagedata) {
-    if (logLevel > 1 && (logSamplesCount % LOG_INTERVAL) == 0) {
+    if (logLevel > 1) {
         cout << "Aux Packet: " << rawmessagedata.toHex().toStdString() << endl;
     }
     fc_aux_info_t *info = reinterpret_cast<fc_aux_info_t *>(rawmessagedata.data());
@@ -807,7 +807,7 @@ void Apexi::decodeAux(QByteArray rawmessagedata) {
     packageAux[2] = mul[29] * info->AN3 + add[29];
     packageAux[3] = mul[29] * info->AN4 + add[29];
 
-    if (logLevel > 1 && (logSamplesCount % LOG_INTERVAL) == 0) {
+    if (logLevel > 1) {
         cout << fixed << setprecision(3)
              << " An1:" <<  packageAux[0]
              << " An3:" <<  packageAux[2]
@@ -821,7 +821,7 @@ void Apexi::decodeAux(QByteArray rawmessagedata) {
 }
 
 void Apexi::decodeAuxBlack(QByteArray rawmessagedata) {
-    if (logLevel > 1 && (logSamplesCount % LOG_INTERVAL) == 0) {
+    if (logLevel > 1) {
         cout << "Aux(Black) Packet: " << rawmessagedata.toHex().toStdString() << endl;
     }
 
@@ -841,7 +841,7 @@ void Apexi::decodeAuxBlack(QByteArray rawmessagedata) {
     const double auxCalc3 = ((an5_6volt5 - an5_6volt0) / MAX_AUX_VOLT) * (an5 - an6) + an5_6volt0;
     const double auxCalc4 = ((an7_8volt5 - an7_8volt0) / MAX_AUX_VOLT) * (an7 - an8) + an7_8volt0;
 
-    if (logLevel > 1 && (logSamplesCount % LOG_INTERVAL) == 0) {
+    if (logLevel > 1) {
         cout << fixed << setprecision(3)
              << " an1_2volt0: " << an1_2volt0
              << " an1_2volt5: " << an1_2volt5
