@@ -42,6 +42,10 @@ QString Auxname2;
  */
 const double MAX_AUX_VOLT = 5.0;
 /**
+ * Transform raw int value to volt
+ */
+const double AUX_VOLT_TRANSFORM = 1.0 / 206.5;
+/**
  * The value of the calculation for AN1-2 at volt 0
  */
 float an1_2volt0;
@@ -827,14 +831,14 @@ void Apexi::decodeAuxBlack(QByteArray rawmessagedata) {
 
     fc_aux2_info_t *info = reinterpret_cast<fc_aux2_info_t *>(rawmessagedata.data());
 
-    const double an1 = info -> AN1 * (1.0 / 204.0);
-    const double an2 = info -> AN2 * (1.0 / 204.0);
-    const double an3 = info -> AN3 * (1.0 / 204.0);
-    const double an4 = info -> AN4 * (1.0 / 204.0);
-    const double an5 = info -> AN5 * (1.0 / 204.0);
-    const double an6 = info -> AN6 * (1.0 / 204.0);
-    const double an7 = info -> AN7 * (1.0 / 204.0);
-    const double an8 = info -> AN8 * (1.0 / 204.0);
+    const double an1 = info -> AN1 * AUX_VOLT_TRANSFORM;
+    const double an2 = info -> AN2 * AUX_VOLT_TRANSFORM;
+    const double an3 = info -> AN3 * AUX_VOLT_TRANSFORM;
+    const double an4 = info -> AN4 * AUX_VOLT_TRANSFORM;
+    const double an5 = info -> AN5 * AUX_VOLT_TRANSFORM;
+    const double an6 = info -> AN6 * AUX_VOLT_TRANSFORM;
+    const double an7 = info -> AN7 * AUX_VOLT_TRANSFORM;
+    const double an8 = info -> AN8 * AUX_VOLT_TRANSFORM;
 
     const double auxCalc1 = ((an1_2volt5 - an1_2volt0) / MAX_AUX_VOLT) * (an1 - an2) + an1_2volt0;
     const double auxCalc2 = ((an3_4volt5 - an3_4volt0) / MAX_AUX_VOLT) * (an3 - an4) + an3_4volt0;
