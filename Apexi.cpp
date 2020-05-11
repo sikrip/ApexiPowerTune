@@ -119,7 +119,7 @@ struct ReadPacket {
     QByteArray bytes;
     int responseSize;
 };
-ReadPacket READ_REQUESTS[16] = {
+ReadPacket READ_REQUESTS[18] = {
     { QByteArray::fromHex("F3020A"),  11 }, // Platform version (i.e ' 2ZZ-GE ')
     { QByteArray::fromHex("0102FC"),   8 }, // Version (i.e 'V2.0.')
     { QByteArray::fromHex("F50208"),   8 }, // Platform version (i.e. '2.71A')
@@ -132,13 +132,16 @@ ReadPacket READ_REQUESTS[16] = {
     { QByteArray::fromHex("B50248"), 103 }, // Fuel map (request 6 of 8)
     { QByteArray::fromHex("B60247"), 103 }, // Fuel map (request 7 of 8)
     { QByteArray::fromHex("B70246"), 103 },  // Fuel map (request 8 of 8)
+    // Live data
     { QByteArray::fromHex("F0020D"), 33 }, // Advanced data
     { QByteArray::fromHex("DB0222"),  5 }, // Map indices
     { QByteArray::fromHex("DE021F"), 21 }, // Sensor data
-    { QByteArray::fromHex("010300FB"), 19 } // Aux data (black)
+    { QByteArray::fromHex("DA0223"), 23 }, // Basic data
+    { QByteArray::fromHex("010300FB"), 19 }, // Aux data (black)
+    { QByteArray::fromHex("0002FD"), 7 } // TODO remove
 };
 
-const int MAX_REQUEST_IDX = 15;
+const int MAX_REQUEST_IDX = 17;
 const int INIT_REQUEST_IDX = 0;
 const int FIRST_LIVE_DATA_REQUEST_IDX = 12;
 
@@ -804,10 +807,17 @@ void Apexi::decodeAux(QByteArray rawmessagedata) {
     packageAux[2] = mul[29] * info->AN3 + add[29];
     packageAux[3] = mul[29] * info->AN4 + add[29];
 
+    if (logLevel > 1 && (logSamplesCount % LOG_INTERVAL) == 0) {
+        cout << fixed << setprecision(3)
+             << " An1:" <<  packageAux[0]
+             << " An3:" <<  packageAux[2]
+             << endl;
+    }
+
     AN1AN2calc = ((((an1_2volt5 - an1_2volt0) * 0.2) * (packageAux[0] - packageAux[1])) + an1_2volt0);
     AN3AN4calc = ((((an3_4volt5 - an3_4volt0) * 0.2) * (packageAux[2] - packageAux[3])) + an3_4volt0);
-    m_dashboard->setauxcalc1(AN1AN2calc);
-    m_dashboard->setauxcalc2(AN3AN4calc);
+    // m_dashboard->setauxcalc1(AN1AN2calc);
+    // m_dashboard->setauxcalc2(AN3AN4calc);
 }
 
 void Apexi::decodeAuxBlack(QByteArray rawmessagedata) {
