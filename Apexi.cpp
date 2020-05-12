@@ -436,17 +436,18 @@ void Apexi::updateAutoTuneLogs() {
 
     if (logLevel > 0 && (logSamplesCount % LOG_INTERVAL) == 0) {
         cout << lastLogTime.toString("hh:mm:ss.zzz").toStdString()
+             << setprecision(3) << fixed
              << ", ClosedLoopEnabled:" << (closedLoopEnabled ? "Yes" : "No")
              << ", AutoTuning:" << (shouldUpdateAfr ? "Yes" : "No")
              << ", WaterTemp:" << waterTemp
-             << ", MapN:" << packageMap[0]
-             << ", MapP:" << packageMap[1]
+             << ", MapN:" << rpmIdx
+             << ", MapP:" << loadIdx
              << ", Rpm:" << rpm
              << ", Speed:" << speed
              << ", AFR:" << loggedAFR
              << ", Tps:" << tpsVolt
              << ", TimeDelta:" << timeDeltaSeconds
-             << ", TpsChangeRate:" << setprecision(3) << fixed << tpsChangeRate << endl;
+             << ", TpsChangeRate:" << tpsChangeRate << endl;
     }
 }
 
