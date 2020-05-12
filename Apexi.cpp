@@ -165,6 +165,8 @@ const double MAX_AUTOTUNE_TPS_CHANGE_RATE = 4; // volt / second
 const double MIN_AUTOTUNE_TPS_CHANGE_RATE = -4;
 const double MIN_AUTOTUNE_SPEED = 5; // km/h
 const double MAX_AUTOTUNE_TPS_VOLT = 3.0;
+const double MAX_AFR = 19.8;
+const double MIN_AFR = 9.8;
 
 bool closedLoopEnabled = false;
 
@@ -410,7 +412,7 @@ void Apexi::updateAutoTuneLogs() {
 
     const bool shouldUpdateAfr =
         // AFR value should be initialized
-        loggedAFR != -1 &&
+        loggedAFR >= MIN_AFR && loggedAFR <= MAX_AFR &&
         // Update AFR only when the closed loop is enabled
         closedLoopEnabled &&
         // Auto tune only when engine is warmed up
