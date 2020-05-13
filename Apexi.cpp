@@ -1021,7 +1021,7 @@ void Apexi::setAuxCalcData(float aux1min, float aux1max,
     Auxname3 = Auxunit3;
 
     if (LOG_LEVEL >= LOGGING_INFO) {
-        cout << "setAuxCalcData:"
+        cout << "AuxCalcData:" << endl
              << " an1_2volt0:" << an1_2volt0 << endl
              << " an1_2volt5:" << an1_2volt5 << endl
              << " an3_4volt0:" << an3_4volt0 << endl
