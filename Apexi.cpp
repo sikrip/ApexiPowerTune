@@ -576,7 +576,7 @@ void Apexi::sendPfcReadRequest() {
         // Request aux data for version 1 datalogit (white)
         readPacket = V1_AUX_DATA;
     } else {
-        readPacket = READ_REQUESTS[requestIndex]
+        readPacket = READ_REQUESTS[requestIndex];
     }
     if (LOG_LEVEL >= LOGGING_DEBUG) {
         cout << "sendPfcReadRequest: " << requestIndex << "->" << readPacket.bytes.toHex().toStdString() << endl;
