@@ -1015,7 +1015,11 @@ void Apexi::enableClosedLoop(bool enable) {
     closedLoopEnabled = enable;
 }
 
-void Apexi::setAuxCalcData(float aux1min, float aux1max, float aux2min, float aux2max, float aux3min, float aux3max, QString Auxunit1, QString Auxunit2, QString Auxunit3) {
+void Apexi::setAuxCalcData(float aux1min, float aux1max,
+                           float aux2min, float aux2max,
+                           float aux3min, float aux3max,
+                           QString Auxunit1,
+                           QString Auxunit2, QString Auxunit3) {
     an1_2volt0 = aux1min;
     an1_2volt5 = aux1max;
     an3_4volt0 = aux2min;
