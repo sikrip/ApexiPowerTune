@@ -54,9 +54,12 @@ private:
 
     void decodeResponseAndSendNextRequest(const QByteArray &buffer);
 
+    void decodeDatalogitVersion(QByteArray rawmessagedata);
+
     void sendPfcReadRequest();
 
     bool isClosedLoopConditions();
+
     void updateAutoTuneLogs();
 
     double packageADV[33];
@@ -435,7 +438,6 @@ public
 
     void decodeBasic(QByteArray rawmessagedata);
 
-    // void decodeVersion(QByteArray rawmessagedata);
     void decodeInit(QByteArray rawmessagedata);
 
     void decodeSensorStrings(QByteArray rawmessagedata);

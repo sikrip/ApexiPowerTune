@@ -100,6 +100,13 @@ QString port;
 int Model = 0;
 
 /**
+ * '2' for black datalogit, '1' for white (old)
+ */
+char majorDatalogitVersion;
+const char V2_DATALOGIT = '2';
+const char V1_DATALOGIT = '1';
+
+/**
  * Holds the number of expected bytes of the next PFC response.
  */
 int expectedbytes;
@@ -109,7 +116,7 @@ struct ReadPacket {
     QByteArray bytes;
     int responseSize;
 };
-ReadPacket READ_REQUESTS[17] = {
+const ReadPacket READ_REQUESTS[17] = {
     { QByteArray::fromHex("F3020A"),  11 }, // Platform (i.e ' 2ZZ-GE ')
     { QByteArray::fromHex("0102FC"),   8 }, // Datalogit Version (i.e 'V2.0.')
     { QByteArray::fromHex("F50208"),   8 }, // Platform version (i.e. '2.71A')
@@ -129,10 +136,13 @@ ReadPacket READ_REQUESTS[17] = {
     { QByteArray::fromHex("DA0223"),  23 }, // Basic data
     { QByteArray::fromHex("010300FB"),19 }  // Aux data (black)
 };
+// The request packet for aux data of the old datalogit
+const ReadPacket V1_AUX_DATA = { QByteArray::fromHex("0002FD"), 7 };
 
 const int MAX_REQUEST_IDX = 16;
 const int INIT_REQUEST_IDX = 0;
 const int FIRST_LIVE_DATA_REQUEST_IDX = 12;
+const int AUX_DATA_REQUEST_IDX = 16;
 
 // TODO find why this is a state variable
 qreal advboost;
@@ -463,14 +473,13 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
             case ID::AuxData:
                 Apexi::decodeAux(rawmessagedata);
                 break;
-            case ID::AuxDataBlack: // 01 is botch aux and .. 0102FC (datalogit version?)
+            case ID::AuxDataBlack:
                 if (responseLength == 3) {
                     // 01 03 => black datalogit aux
                     Apexi::decodeAuxBlack(rawmessagedata);
                 } else if (responseLength == 2){
                     // 01 02 => datalogit version
-                    // TODO handle both V1.x and V2.x
-                    cout << "Datalogit Version:" << rawmessagedata.toStdString() << endl;
+                    Apexi::decodeDatalogitVersion(rawmessagedata);
                 }
                 break;
             case ID::MapIndex:
@@ -562,7 +571,13 @@ void Apexi::writeRequestPFC(QByteArray p_request) {
 
 void Apexi::sendPfcReadRequest() {
     // Using only New Apexi Structure (Protocol 0), Protocol 1 never used
-    ReadPacket readPacket = READ_REQUESTS[requestIndex];
+    ReadPacket readPacket;
+    if(requestIndex == AUX_DATA_REQUEST_IDX && majorDatalogitVersion == V1_DATALOGIT) {
+        // Request aux data for version 1 datalogit (white)
+        readPacket = V1_AUX_DATA;
+    } else {
+        readPacket = READ_REQUESTS[requestIndex]
+    }
     if (LOG_LEVEL >= LOGGING_DEBUG) {
         cout << "sendPfcReadRequest: " << requestIndex << "->" << readPacket.bytes.toHex().toStdString() << endl;
     }
@@ -775,7 +790,7 @@ void Apexi::decodeSensor(QByteArray rawmessagedata) {
 
 void Apexi::decodeAux(QByteArray rawmessagedata) {
     if (LOG_LEVEL >= LOGGING_DEBUG) {
-        cout << "Aux Packet: " << rawmessagedata.toHex().toStdString() << endl;
+        cout << "Aux Packet:" << rawmessagedata.toHex().toStdString() << endl;
     }
     fc_aux_info_t *info = reinterpret_cast<fc_aux_info_t *>(rawmessagedata.data());
 
@@ -791,15 +806,19 @@ void Apexi::decodeAux(QByteArray rawmessagedata) {
              << endl;
     }
 
-    // AN1AN2calc = ((((an1_2volt5 - an1_2volt0) * 0.2) * (packageAux[0] - packageAux[1])) + an1_2volt0);
-    // AN3AN4calc = ((((an3_4volt5 - an3_4volt0) * 0.2) * (packageAux[2] - packageAux[3])) + an3_4volt0);
-    // m_dashboard->setauxcalc1(AN1AN2calc);
-    // m_dashboard->setauxcalc2(AN3AN4calc);
+    const double auxCalc1 = ((((an1_2volt5 - an1_2volt0) * 0.2) * (packageAux[0] - packageAux[1])) + an1_2volt0);
+    const double auxCalc2 = ((((an3_4volt5 - an3_4volt0) * 0.2) * (packageAux[2] - packageAux[3])) + an3_4volt0);
+
+    // TODO should be configurable, for now wideband is tied with An3-4
+    loggedAFR = auxCalc2;
+
+    m_dashboard->setauxcalc1(auxCalc1);
+    m_dashboard->setauxcalc2(auxCalc2);
 }
 
 void Apexi::decodeAuxBlack(QByteArray rawmessagedata) {
     if (LOG_LEVEL >= LOGGING_DEBUG) {
-        cout << "Aux(Black) Packet: " << rawmessagedata.toHex().toStdString() << endl;
+        cout << "Aux(Black) Packet:" << rawmessagedata.toHex().toStdString() << endl;
     }
 
     fc_aux2_info_t *info = reinterpret_cast<fc_aux2_info_t *>(rawmessagedata.data());
@@ -968,6 +987,17 @@ void Apexi::decodeInit(QByteArray rawmessagedata) {
     if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "Decode Init. Platform:" << modelname.toStdString() << ", Model: "
              << Model << ", Ecu Idx: " << m_dashboard->ecu() << endl;
+    }
+}
+
+void Apexi::decodeDatalogitVersion(QByteArray rawmessagedata) {
+    // Sample response from black datalogit
+    // 01 07 56 32 2e 30 00 11
+    //       V  .  2
+    majorDatalogitVersion = rawmessagedata[4];
+    if (LOG_LEVEL >= LOGGING_INFO) {
+        cout << "Datalogit Version(raw):" << rawmessagedata.toStdString() << endl
+             << "Decoded major version:" << majorDatalogitVersion << endl;
     }
 }
 
