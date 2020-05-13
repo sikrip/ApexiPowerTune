@@ -384,8 +384,6 @@ public:
 
     explicit Apexi(DashBoard *dashboard, QObject *parent = 0);
 
-    Q_INVOKABLE void SetProtocol(const int &protocolselect);
-
     Q_INVOKABLE void
     writeDashfile(const QString &gauge1, const QString &gauge2, const QString &gauge3, const QString &gauge4,
                   const QString &gauge5, const QString &gauge6);
@@ -403,7 +401,7 @@ private:
 
 public
     slots:
-            // void SetProtocol(const int &protocolselect);
+
     void readyToRead();
 
     void handleTimeout();

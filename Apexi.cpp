@@ -104,15 +104,6 @@ int Model = 0;
  */
 int expectedbytes;
 
-/**
- * The PFC protocol to be used.
- * 0 => New protocol
- * 2 => Old protocol
- *
- * TODO looks like only protocol 0 is used
- */
-int Protocol = 0;
-
 int requestIndex = 0; // ID for requested data type Power FC
 struct ReadPacket {
     QByteArray bytes;
@@ -187,10 +178,6 @@ Apexi::Apexi(DashBoard *dashboard, QObject *parent)
         : QObject(parent), m_dashboard(dashboard) {
 }
 
-void Apexi::SetProtocol(const int &protocolselect) {
-    Protocol = protocolselect;
-}
-
 void Apexi::initSerialPort() {
     if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "Initializing serial port\n";
@@ -214,6 +201,9 @@ void Apexi::clear() {
 
 //function to open serial port
 void Apexi::openConnection(const QString &portName) {
+    cout << "Logging level:" << LOG_LEVEL << endl
+         << "Log Interval:" << LOG_INTERVAL << endl
+         << "Closed Loop:" << closedLoopEnabled ? "Yes" : "No" << endl;
     if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "Opening connection\n";
     }
@@ -571,7 +561,7 @@ void Apexi::writeRequestPFC(QByteArray p_request) {
 }
 
 void Apexi::sendPfcReadRequest() {
-    // New Apexi Structure (Protocol 0), Protocol 1 removed, never used
+    // Using only New Apexi Structure (Protocol 0), Protocol 1 never used
     ReadPacket readPacket = READ_REQUESTS[requestIndex];
     if (LOG_LEVEL >= LOGGING_DEBUG) {
         cout << "sendPfcReadRequest: " << requestIndex << "->" << readPacket.bytes.toHex().toStdString() << endl;
@@ -1032,13 +1022,12 @@ void Apexi::setAuxCalcData(float aux1min, float aux1max,
 
     if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "setAuxCalcData:"
-             << " an1_2volt0:" << an1_2volt0
-             << " an1_2volt5:" << an1_2volt5
-             << " an3_4volt0:" << an3_4volt0
-             << " an3_4volt5:" << an3_4volt5
-             << " an5_6volt0:" << an5_6volt0
-             << " an5_6volt5:" << an5_6volt5
-             << endl;
+             << " an1_2volt0:" << an1_2volt0 << endl
+             << " an1_2volt5:" << an1_2volt5 << endl
+             << " an3_4volt0:" << an3_4volt0 << endl
+             << " an3_4volt5:" << an3_4volt5 << endl
+             << " an5_6volt0:" << an5_6volt0 << endl
+             << " an5_6volt5:" << an5_6volt5 << endl;
     }
 }
 
