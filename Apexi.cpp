@@ -175,8 +175,6 @@ double loggedAFR = -1;
 double lastTpsVolt = MIN_TPS_VOLT;
 QTime lastLogTime = QTime::currentTime();
 
-// 0: off, 1: info, 2: debug
-int logLevel = 1;
 // Used for logging messages in fixed intervals
 long logSamplesCount = 0;
 const int LOG_INTERVAL = 10;
@@ -194,7 +192,7 @@ void Apexi::SetProtocol(const int &protocolselect) {
 }
 
 void Apexi::initSerialPort() {
-    if (logLevel>0) {
+    if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "Initializing serial port\n";
     }
     m_serialport = new SerialPort(this);
@@ -208,7 +206,7 @@ void Apexi::initSerialPort() {
 
 //function for flushing all serial buffers
 void Apexi::clear() {
-    if (logLevel>0) {
+    if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "Clearing serial port\n";
     }
     m_serialport->clear();
@@ -216,7 +214,7 @@ void Apexi::clear() {
 
 //function to open serial port
 void Apexi::openConnection(const QString &portName) {
-    if (logLevel>0) {
+    if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "Opening connection\n";
     }
     port = portName;
@@ -229,13 +227,13 @@ void Apexi::openConnection(const QString &portName) {
     m_serialport->setFlowControl(QSerialPort::NoFlowControl);;
 
     if (m_serialport->open(QIODevice::ReadWrite) == false) {
-        if (logLevel>0) {
+        if (LOG_LEVEL >= LOGGING_INFO) {
             cout << "Failed to open serial communication: " << m_serialport->errorString().toStdString() << endl;
         }
         m_dashboard->setSerialStat(m_serialport->errorString());
         Apexi::closeConnection();
     } else {
-        if (logLevel>0) {
+        if (LOG_LEVEL >= LOGGING_INFO) {
             cout << "Connected to Serial Port\n";
         }
         m_dashboard->setSerialStat(QString("Connected to Serialport"));
@@ -245,7 +243,7 @@ void Apexi::openConnection(const QString &portName) {
 }
 
 void Apexi::closeConnection() {
-    if (logLevel>0) {
+    if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "Closing connection\n";
     }
     disconnect(this->m_serialport, SIGNAL(readyRead()), this, SLOT(readyToRead()));
@@ -257,39 +255,39 @@ void Apexi::closeConnection() {
 }
 
 void Apexi::retryconnect() {
-    if (logLevel>0) {
+    if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "Retry connection\n";
     }
     Apexi::openConnection(port);
 }
 
 void Apexi::handleTimeout() {
-    if (logLevel>0) {
+    if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "Handling timeout\n";
     }
     m_dashboard->setTimeoutStat(QString("Is Timeout : Y"));
     m_timer.stop();
     m_serialport->close();
     if (m_serialport->open(QIODevice::ReadWrite) == false) {
-        if (logLevel>0) {
+        if (LOG_LEVEL >= LOGGING_INFO) {
             cout << "Failed to open serial communication: " << m_serialport->errorString().toStdString() << endl;
         }
         m_dashboard->setSerialStat(m_serialport->errorString());
     } else {
-        if (logLevel>0) {
+        if (LOG_LEVEL >= LOGGING_INFO) {
             cout << "Connected to Serial Port\n";
         }
         m_dashboard->setSerialStat(QString("Connected to Serialport"));
     }
 
-    requestIndex = INIT_REQUEST_IDX; // or just continue with live data?
+    requestIndex = INIT_REQUEST_IDX; // TODO or just continue with live data?
     m_readData.clear();
 
     Apexi::sendPfcReadRequest();
 }
 
 void Apexi::handleError(QSerialPort::SerialPortError serialPortError) {
-    if (logLevel>0) {
+    if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "Handling error " << m_serialport->errorString().toStdString() << endl;
     }
     if (serialPortError == QSerialPort::ReadError) {
@@ -305,7 +303,7 @@ void Apexi::handleError(QSerialPort::SerialPortError serialPortError) {
 }
 
 void Apexi::readyToRead() {
-    if (logLevel>1) {
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
         cout << "readyToRead callback." << endl;
     }
     m_readData = m_serialport->readAll();
@@ -319,7 +317,7 @@ void Apexi::readyToRead() {
  * @param buffer the raw PFC response
  */
 void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
-    if (logLevel>1) {
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
         cout << "decodeResponseAndSendNextRequest: " << buffer.toHex().toStdString() << endl;
     }
     m_buffer.append(buffer);
@@ -355,12 +353,12 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         if (isClosedLoopConditions() && handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
             // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
 
-            if (logLevel>0 && getCurrentFuelMapWriteRequest() == 1) {
+            if (LOG_LEVEL >= LOGGING_INFO && getCurrentFuelMapWriteRequest() == 1) {
                 cout << "\nWriting fuel map..." << endl;
                 logFuelData(10);
             }
             QByteArray writePacket = QByteArray::fromRawData(getNextFuelMapWritePacket(), MAP_WRITE_PACKET_LENGTH);
-            if (logLevel>1) {
+            if (LOG_LEVEL >= LOGGING_DEBUG) {
                 cout << "Sending map write packet: " << writePacket.toHex().toStdString() << endl;
             }
             Apexi::writeRequestPFC(writePacket);
@@ -434,7 +432,7 @@ void Apexi::updateAutoTuneLogs() {
         updateAFRData(rpmIdx, loadIdx, loggedAFR);
     }
 
-    if (logLevel > 0 && (logSamplesCount % LOG_INTERVAL) == 0) {
+    if (LOG_LEVEL >= LOGGING_INFO && (logSamplesCount % LOG_INTERVAL) == 0) {
         cout << lastLogTime.toString("hh:mm:ss.zzz").toStdString()
              << setprecision(3) << fixed
              << ", ClosedLoopEnabled:" << (closedLoopEnabled ? "Yes" : "No")
@@ -452,7 +450,7 @@ void Apexi::updateAutoTuneLogs() {
 }
 
 void Apexi::decodePfcData(QByteArray rawmessagedata) {
-    if (logLevel>1) {
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
         cout << "PFC response packet: " << rawmessagedata.toHex().toStdString() << endl;
     }
     if (rawmessagedata.length()) {
@@ -531,7 +529,7 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
                 break;
             case ID::FuelMapBatch8:
                 readFuelMap(8, rawmessagedata.data());
-                if (logLevel>0) {
+                if (LOG_LEVEL >= LOGGING_INFO) {
                     cout << "== Read the following fuel map ==\n";
                     for (int r = 0; r < 20; r++) {
                         for (int c = 0; c < 20; c++) {
@@ -572,7 +570,7 @@ void Apexi::writeRequestPFC(QByteArray p_request) {
 void Apexi::sendPfcReadRequest() {
     // New Apexi Structure (Protocol 0), Protocol 1 removed, never used
     ReadPacket readPacket = READ_REQUESTS[requestIndex];
-    if (logLevel>1) {
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
         cout << "sendPfcReadRequest: " << requestIndex << "->" << readPacket.bytes.toHex().toStdString() << endl;
     }
     Apexi::writeRequestPFC(readPacket.bytes);
@@ -783,7 +781,7 @@ void Apexi::decodeSensor(QByteArray rawmessagedata) {
 }
 
 void Apexi::decodeAux(QByteArray rawmessagedata) {
-    if (logLevel > 1) {
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
         cout << "Aux Packet: " << rawmessagedata.toHex().toStdString() << endl;
     }
     fc_aux_info_t *info = reinterpret_cast<fc_aux_info_t *>(rawmessagedata.data());
@@ -793,7 +791,7 @@ void Apexi::decodeAux(QByteArray rawmessagedata) {
     packageAux[2] = mul[29] * info->AN3 + add[29];
     packageAux[3] = mul[29] * info->AN4 + add[29];
 
-    if (logLevel > 1) {
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
         cout << fixed << setprecision(3)
              << " An1:" <<  packageAux[0]
              << " An3:" <<  packageAux[2]
@@ -807,7 +805,7 @@ void Apexi::decodeAux(QByteArray rawmessagedata) {
 }
 
 void Apexi::decodeAuxBlack(QByteArray rawmessagedata) {
-    if (logLevel > 1) {
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
         cout << "Aux(Black) Packet: " << rawmessagedata.toHex().toStdString() << endl;
     }
 
@@ -830,7 +828,12 @@ void Apexi::decodeAuxBlack(QByteArray rawmessagedata) {
     // TODO should be configurable, for now wideband is tied with An3-4
     loggedAFR = auxCalc2;
 
-    if (logLevel > 1) {
+    m_dashboard->setauxcalc1(auxCalc1);
+    m_dashboard->setauxcalc2(auxCalc2);
+    m_dashboard->setauxcalc3(auxCalc3);
+    m_dashboard->setauxcalc4(auxCalc4);
+
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
         cout << fixed << setprecision(3)
              << " an1_2volt0: " << an1_2volt0
              << " an1_2volt5: " << an1_2volt5
@@ -857,10 +860,6 @@ void Apexi::decodeAuxBlack(QByteArray rawmessagedata) {
              << " auxCalc3: " << auxCalc3
              << " auxCalc4: " << auxCalc4 << endl;
     }
-    m_dashboard->setauxcalc1(auxCalc1);
-    m_dashboard->setauxcalc2(auxCalc2);
-    m_dashboard->setauxcalc3(auxCalc3);
-    m_dashboard->setauxcalc4(auxCalc4);
 }
 
 // Decodes map indices (MapN, MapP)
@@ -971,11 +970,12 @@ void Apexi::decodeInit(QByteArray rawmessagedata) {
         cout << "Could not recognize platform:" << modelname.toStdString() << endl;
     }
 
-    if (logLevel > 0) {
+    m_dashboard->setPlatform(modelname);
+
+    if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "Decode Init. Platform:" << modelname.toStdString() << ", Model: "
              << Model << ", Ecu Idx: " << m_dashboard->ecu() << endl;
     }
-    m_dashboard->setPlatform(modelname);
 }
 
 void Apexi::decodeSensorStrings(QByteArray rawmessagedata) {
@@ -1023,7 +1023,7 @@ void Apexi::setAuxCalcData(float aux1min, float aux1max, float aux2min, float au
     Auxname2 = Auxunit2;
     Auxname3 = Auxunit3;
 
-    if (logLevel > 0) {
+    if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "setAuxCalcData:"
              << " an1_2volt0:" << an1_2volt0
              << " an1_2volt5:" << an1_2volt5
