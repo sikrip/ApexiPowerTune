@@ -203,7 +203,7 @@ void Apexi::clear() {
 void Apexi::openConnection(const QString &portName) {
     cout << "Logging level:" << LOG_LEVEL << endl
          << "Log Interval:" << LOG_INTERVAL << endl
-         << "Closed Loop:" << closedLoopEnabled ? "Yes" : "No" << endl;
+         << "Closed Loop:" << (closedLoopEnabled ? "Yes" : "No") << endl;
     if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "Opening connection\n";
     }
