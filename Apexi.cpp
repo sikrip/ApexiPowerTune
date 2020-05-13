@@ -130,13 +130,13 @@ ReadPacket READ_REQUESTS[17] = {
     { QByteArray::fromHex("B40249"), 103 }, // Fuel map (request 5 of 8)
     { QByteArray::fromHex("B50248"), 103 }, // Fuel map (request 6 of 8)
     { QByteArray::fromHex("B60247"), 103 }, // Fuel map (request 7 of 8)
-    { QByteArray::fromHex("B70246"), 103 },  // Fuel map (request 8 of 8)
+    { QByteArray::fromHex("B70246"), 103 }, // Fuel map (request 8 of 8)
     // Live data
-    { QByteArray::fromHex("F0020D"), 33 }, // Advanced data
-    { QByteArray::fromHex("DB0222"),  5 }, // Map indices
-    { QByteArray::fromHex("DE021F"), 21 }, // Sensor data
-    { QByteArray::fromHex("DA0223"), 23 }, // Basic data
-    { QByteArray::fromHex("010300FB"), 19 } // Aux data (black)
+    { QByteArray::fromHex("F0020D"),  33 }, // Advanced data
+    { QByteArray::fromHex("DB0222"),   5 }, // Map indices
+    { QByteArray::fromHex("DE021F"),  21 }, // Sensor data
+    { QByteArray::fromHex("DA0223"),  23 }, // Basic data
+    { QByteArray::fromHex("010300FB"),19 }  // Aux data (black)
 };
 
 const int MAX_REQUEST_IDX = 16;
