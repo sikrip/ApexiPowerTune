@@ -119,8 +119,8 @@ struct ReadPacket {
     int responseSize;
 };
 ReadPacket READ_REQUESTS[17] = {
-    { QByteArray::fromHex("F3020A"),  11 }, // Platform version (i.e ' 2ZZ-GE ')
-    { QByteArray::fromHex("0102FC"),   8 }, // Version (i.e 'V2.0.')
+    { QByteArray::fromHex("F3020A"),  11 }, // Platform (i.e ' 2ZZ-GE ')
+    { QByteArray::fromHex("0102FC"),   8 }, // Datalogit Version (i.e 'V2.0.')
     { QByteArray::fromHex("F50208"),   8 }, // Platform version (i.e. '2.71A')
     { QByteArray::fromHex("DD0220"),  83 }, // Sensor labels (i.e. '2.71A')
     { QByteArray::fromHex("B0024D"), 103 }, // Fuel map (request 1 of 8)
@@ -455,7 +455,8 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
     }
     if (rawmessagedata.length()) {
         //Power FC Decode
-        quint8 requesttype = rawmessagedata[0];
+        const quint8 requesttype = rawmessagedata[0];
+        const quint8 responseLength = rawmessagedata[1];
         switch (requesttype) {
             case ID::Advance:
                 Apexi::decodeAdv(rawmessagedata);
@@ -473,11 +474,13 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
                 Apexi::decodeAux(rawmessagedata);
                 break;
             case ID::AuxDataBlack: // 01 is botch aux and .. 0102FC (datalogit version?)
-                if (requestIndex > FIRST_LIVE_DATA_REQUEST_IDX) {
+                if (responseLength == 3) {
+                    // 01 03 => black datalogit aux
                     Apexi::decodeAuxBlack(rawmessagedata);
-                } else {
-                    // TODO
-                    cout << "Datalogit Version:" << rawmessagedata.toHex().toStdString() << endl;
+                } else if (responseLength == 2){
+                    // 01 02 => datalogit version
+                    // TODO handle both V1.x and V2.x
+                    cout << "Datalogit Version:" << rawmessagedata.toStdString() << endl;
                 }
                 break;
             case ID::MapIndex:
@@ -504,7 +507,7 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
                 break;
             case ID::Version:
                 // TODO
-                cout << "Version:" << rawmessagedata.toHex().toStdString() << endl;
+                cout << "Platform Version:" << rawmessagedata.toStdString() << endl;
                 break;
             case ID::FuelMapBatch1:
                 readFuelMap(1, rawmessagedata.data());
