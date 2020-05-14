@@ -48,10 +48,10 @@ void datalogger::updateLog() {
             const QString logFileName = QDate::currentDate().toString("log_dd.MM.yyyy") +
                     QTime::currentTime().toString("_hh.mm.ss") +
                     ".csv";
-            logFile(logFileName);
+            logFile = new QFile(logFileName);
             if (logFile.open(QIODevice::ReadWrite)) {
                 logging = true;
-                textStream(&logFile);
+                textStream = new QTextStream(&logFile);
                 datalogger::createHeader();
             }
         }
