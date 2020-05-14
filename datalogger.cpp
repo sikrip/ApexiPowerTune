@@ -9,7 +9,6 @@
 // still need to find a way to make this configurable
 QTime loggerStartT;
 QFile logFile;
-QTextStream textStream;
 bool logging = false;
 int minLoggingRPM = 100;
 
@@ -52,8 +51,7 @@ void datalogger::updateLog() {
             logFile = file;
             if (logFile.open(QIODevice::ReadWrite)) {
                 logging = true;
-                QTextStream stream(&logFile);
-                textStream = stream;
+                QTextStream textStream(&logFile);
                 datalogger::createHeader();
             }
         }
@@ -190,6 +188,7 @@ void datalogger::updateLog() {
 
 
 void datalogger::createHeader() {
+    QTextStream textStream(&logFile);
     switch(m_dashboard->ecu()) {
         case 1: //Apexi
             textStream << "Time(S)" << ","
