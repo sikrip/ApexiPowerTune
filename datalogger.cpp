@@ -51,13 +51,13 @@ void datalogger::updateLog() {
             logFile = file;
             if (logFile.open(QIODevice::ReadWrite)) {
                 logging = true;
-                QTextStream textStream(&logFile);
                 datalogger::createHeader();
             }
         }
     }
 
     if (logging) {
+        QTextStream textStream(&logFile);
         switch (m_dashboard->ecu()) {
             case 1: ////Apexi ECU
                 textStream << (loggerStartT.msecsTo(QTime::currentTime()) / 1000.0) << ","
