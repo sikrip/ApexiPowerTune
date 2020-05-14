@@ -9,7 +9,7 @@
 // still need to find a way to make this configurable
 QTime loggerStartT;
 QFile logFile;
-bool logging = false;
+bool isLogging = false;
 int minLoggingRPM = 100;
 
 datalogger::datalogger(QObject *parent)
@@ -29,16 +29,16 @@ void datalogger::startLog() {
 }
 
 void datalogger::stopLog() {
-    logging = false;
+    isLogging = false;
     logFile.close();
     m_updatetimer.stop();
 }
 
 void datalogger::updateLog() {
-    if (logging) {
+    if (isLogging) {
         // Stop logging when engine is shut down
         if (m_dashboard->rpm() < minLoggingRPM) {
-            logging = false;
+            isLogging = false;
             logFile.close();
         }
     } else {
@@ -49,13 +49,13 @@ void datalogger::updateLog() {
                     ".csv";
             logFile.setFileName(logFileName);
             if (logFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-                logging = true;
+                isLogging = true;
                 datalogger::createHeader();
             }
         }
     }
 
-    if (logging) {
+    if (isLogging) {
         QTextStream textStream(&logFile);
         switch (m_dashboard->ecu()) {
             case 1: ////Apexi ECU
