@@ -474,9 +474,8 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
                 Apexi::decodeAux(rawmessagedata);
                 break;
             case ID::AuxDataBlack:
-                cout << "Resp length " << responseLength << " "<< rawmessagedata.toStdString() << endl;
                 if (responseLength == 0x12) {
-                    // 01 03 => black datalogit aux
+                    // 01 12 => black datalogit aux
                     Apexi::decodeAuxBlack(rawmessagedata);
                 } else if (responseLength == 0x07){
                     // 01 07 => datalogit version
@@ -574,7 +573,7 @@ void Apexi::sendPfcReadRequest() {
     // Using only New Apexi Structure (Protocol 0), Protocol 1 never used
     ReadPacket readPacket;
     if(requestIndex == AUX_DATA_REQUEST_IDX && majorDatalogitVersion == V1_DATALOGIT) {
-        // Request aux data for version 1 datalogit (white)
+        // Override request aux data for version 1 datalogit (white)
         readPacket = V1_AUX_DATA;
     } else {
         readPacket = READ_REQUESTS[requestIndex];
@@ -994,8 +993,8 @@ void Apexi::decodeInit(QByteArray rawmessagedata) {
 void Apexi::decodeDatalogitVersion(QByteArray rawmessagedata) {
     // Sample response from black datalogit
     // 01 07 56 32 2e 30 00 11
-    //       V  .  2
-    majorDatalogitVersion = rawmessagedata[4];
+    //       V  2  .  0
+    majorDatalogitVersion = rawmessagedata[3];
     if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "Datalogit Version(raw):" << rawmessagedata.toStdString() << endl
              << "Decoded major version:" << majorDatalogitVersion << endl;
