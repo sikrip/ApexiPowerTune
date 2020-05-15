@@ -10,7 +10,9 @@
 QTime loggerStartT;
 QFile logFile;
 bool isLogging = false;
-int minLoggingRPM = 100;
+// The minimum RPM that the engine is considered started.
+// When the engine shuts off, the last read RPM is known (200ish) so this value cannot be to low.
+int minLoggingRPM = 400;
 
 datalogger::datalogger(QObject *parent)
     : QObject(parent)
