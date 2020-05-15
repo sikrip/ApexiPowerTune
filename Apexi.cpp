@@ -475,11 +475,11 @@ void Apexi::decodePfcData(QByteArray rawmessagedata) {
                 break;
             case ID::AuxDataBlack:
                 cout << "Resp length " << responseLength << " "<< rawmessagedata.toStdString() << endl;
-                if (responseLength == 3) {
+                if (responseLength == 0x12) {
                     // 01 03 => black datalogit aux
                     Apexi::decodeAuxBlack(rawmessagedata);
-                } else if (responseLength == 2){
-                    // 01 02 => datalogit version
+                } else if (responseLength == 0x07){
+                    // 01 07 => datalogit version
                     Apexi::decodeDatalogitVersion(rawmessagedata);
                 }
                 break;
