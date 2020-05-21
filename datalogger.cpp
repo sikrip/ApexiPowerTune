@@ -76,10 +76,10 @@ void datalogger::updateLog() {
                     << m_dashboard->auxcalc2() << "," // Wideband
                     << (m_dashboard->mapP() + 1) << "," // Map N, Map P is zero based
                     << (m_dashboard->mapN() + 1) << ","  // but in FCEdit start from 1
-                    << m_dashboard->PressureV() << ","
                     << m_dashboard->ThrottleV() << ","
                     << m_dashboard->injms() << "," // Not working
                     << m_dashboard->Dwell() << "," // Not working
+                    << m_dashboard->Gear() << "," // Not working
                     << endl;
                 break;
             case 0: ////Link ECU Generic CAN
@@ -207,10 +207,10 @@ void datalogger::createHeader() {
                 << "WideBand" << "," // TODO use be aux name
                 << "MAPP" << ","
                 << "MAPN" << ","
-                << "AFL V" << ","
                 << "VTA V" << ","
                 << "Inj ms" << ","
                 << "Dwell" << ","
+                << "Gear" << ","
                 << endl;
             break;
         case 0: ////Link ECU Generic CAN
