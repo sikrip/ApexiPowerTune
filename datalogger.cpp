@@ -79,7 +79,7 @@ void datalogger::updateLog() {
                     << m_dashboard->ThrottleV() << ","
                     << m_dashboard->injms() << "," // Not working
                     << m_dashboard->Dwell() << "," // Not working
-                    << m_dashboard->Gear() << "," // Not working
+                    << m_dashboard->Gear() << ","
                     << endl;
                 break;
             case 0: ////Link ECU Generic CAN
