@@ -728,6 +728,14 @@ void DashBoard::setO2volt_2(const qreal &O2volt_2)
     emit o2volt_2Changed(O2volt_2);
 }
 
+void DashBoard::setMapN(const int &mapN) {
+    m_MapN = mapN;
+}
+
+void DashBoard::setMapP(const int &mapP) {
+    m_MapP = mapP;
+}
+
 
 //Boost
 
@@ -2948,6 +2956,8 @@ qreal DashBoard::BoostPres() const { return m_BoostPres; }
 qreal DashBoard::BoostDuty() const { return m_BoostDuty; }
 qreal DashBoard::MAFactivity() const { return m_MAFactivity; }
 qreal DashBoard::O2volt_2() const { return m_O2volt_2; }
+int DashBoard::mapN() const { return m_MapN; }
+int DashBoard::mapP() const { return m_MapP; }
 
 
 //Boost

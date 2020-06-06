@@ -18,7 +18,7 @@
 
         explicit datalogger(QObject *parent = 0);
         explicit datalogger(DashBoard *dashboard, QObject *parent = 0);
-        Q_INVOKABLE void startLog(QString Logfilename);
+        Q_INVOKABLE void startLog();
         Q_INVOKABLE void stopLog();
 
 

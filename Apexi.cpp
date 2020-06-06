@@ -1,6 +1,9 @@
 #include "Apexi.h"
 #include "dashboard.h"
 #include "connect.h"
+#include "ApexuFuelMap.h"
+#include <iostream>
+#include <iomanip>
 #include <QTime>
 #include <QTimer>
 #include <QDebug>
@@ -9,83 +12,188 @@
 #include <QFile>
 #include <QTextStream>
 
-
-
+/**
+ * The raw bytes of the PFC responses
+ */
 QByteArray rawmessagedata;
-QByteArray fullFuelBase;
-qreal AN1AN2calc;
-qreal AN3AN4calc;
-qreal test;
-int reconnect = 0;
-QString port;
-//QBitArray flagArray;
-QString Logfile;
+
+/**
+ * Depicts what is measured via AN1-2.
+ */
 QString Auxname1;
+
+/**
+ * Depicts what is measured via AN3-4.
+ */
 QString Auxname2;
-QString Modelname;
+
+/**
+ * Depicts what is measured via AN5-6.
+ */
+QString Auxname3;
+
+/**
+ * The maximum voltage of the aux ports.
+ */
+const double MAX_AUX_VOLT = 5.0;
+/**
+ * Transform raw int value to volt for datalogit black.
+ */
+const double AUX_BLACK_VOLT_TRANSFORM = 1.0 / 205.0;
+/**
+ * The value of the calculation for AN1-2 at volt 0
+ */
+float an1_2volt0;
+
+/**
+ * The value of the calculation for AN1-2 at volt 5
+ */
+float an1_2volt5;
+
+/**
+ * The value of the calculation for AN3-4 at volt 0
+ */
+float an3_4volt0;
+
+/**
+ * The value of the calculation for AN3-4 at volt 5
+ */
+float an3_4volt5;
+
+/**
+ * The value of the calculation for AN5-6 at volt 0
+ */
+float an5_6volt0 = 0;
+
+/**
+ * The value of the calculation for AN5-6 at volt 5
+ */
+float an5_6volt5 = 0;
+
+/**
+ * The value of the calculation for AN7-8 at volt 0
+ */
+float an7_8volt0 = 0;
+
+/**
+ * The value of the calculation for AN7-8 at volt 5
+ */
+float an7_8volt5 = 0;
+
+/**
+ * This is used to decide if a reconnect attempt will be performed.
+ * As it is, only one reconnect attempt will be done.
+ */
+int reconnect = 0;
+
+/**
+ * The name of the port used to connect to PFC
+ */
+QString port;
+
+/**
+ * The model of the connected car.
+ * 1 => Mazda
+ * 2 => Nissan, Subaru, Honda
+ * 3 => Toyota, Mitsubishi
+ */
 int Model = 0;
-int Logging =3;
-int Loggerstat;
 
-float auxval1; // an1-2 v0
-float auxval2; // an1-2 v5
-float auxval3; // an3-4 v0
-float auxval4; // an3-4 v5
+/**
+ * '2' for black datalogit, '1' for white (old)
+ */
+char majorDatalogitVersion;
+const char V2_DATALOGIT = '2';
+const char V1_DATALOGIT = '1';
 
-int requestIndex = 0; //ID for requested data type Power FC
+/**
+ * Holds the number of expected bytes of the next PFC response.
+ */
 int expectedbytes;
-int Bytes;
-int Protocol = 0;
-qreal advboost;
 
+int requestIndex = 0; // ID for requested data type Power FC
+struct ReadPacket {
+    QByteArray bytes;
+    int responseSize;
+};
+const ReadPacket READ_REQUESTS[17] = {
+    { QByteArray::fromHex("F3020A"),  11 }, // Platform (i.e ' 2ZZ-GE ')
+    { QByteArray::fromHex("0102FC"),   8 }, // Datalogit Version (i.e 'V2.0.')
+    { QByteArray::fromHex("F50208"),   8 }, // Platform version (i.e. '2.71A')
+    { QByteArray::fromHex("DD0220"),  83 }, // Sensor labels (i.e. '2.71A')
+    { QByteArray::fromHex("B0024D"), 103 }, // Fuel map (request 1 of 8)
+    { QByteArray::fromHex("B1024C"), 103 }, // Fuel map (request 2 of 8)
+    { QByteArray::fromHex("B2024B"), 103 }, // Fuel map (request 3 of 8)
+    { QByteArray::fromHex("B3024A"), 103 }, // Fuel map (request 4 of 8)
+    { QByteArray::fromHex("B40249"), 103 }, // Fuel map (request 5 of 8)
+    { QByteArray::fromHex("B50248"), 103 }, // Fuel map (request 6 of 8)
+    { QByteArray::fromHex("B60247"), 103 }, // Fuel map (request 7 of 8)
+    { QByteArray::fromHex("B70246"), 103 }, // Fuel map (request 8 of 8)
+    // Live data
+    { QByteArray::fromHex("F0020D"),  33 }, // Advanced data
+    { QByteArray::fromHex("DB0222"),   5 }, // Map indices
+    { QByteArray::fromHex("DE021F"),  21 }, // Sensor data
+    { QByteArray::fromHex("DA0223"),  23 }, // Basic data
+    { QByteArray::fromHex("010300FB"),19 }  // Aux data (black)
+};
+// The request packet for aux data of the old datalogit
+const ReadPacket V1_AUX_DATA = { QByteArray::fromHex("0002FD"), 7 };
+
+const int MAX_REQUEST_IDX = 16;
+const int INIT_REQUEST_IDX = 0;
+const int FIRST_LIVE_DATA_REQUEST_IDX = 12;
+const int AUX_DATA_REQUEST_IDX = 16;
+
+// TODO find why this is a state variable
+qreal advboost;
 
 double mul[80] = FC_INFO_MUL;  // required values for calculation from raw to readable values for Advanced Sensor info
 double add[] = FC_INFO_ADD;
 
-static QString mapFD3S[] ={"InjDuty", "IGL","IGT","Rpm","Speed","Boost","Knock","WtrTemp","AirTemp","BatVolt","PIM","VTA1","VTA2","VMOP","WTRT","AIRT","FUEL","O2S","STR","A/C","PWS","NTR","CLT","STP","CAT","ELD","HWL"};//	FPD	FPR	APR	PAC	CCN	TCN	PRC	AN1 raw	AN2 raw	AN3 raw	AN4 raw	AN1-AN2 Wide Band	AN2 raw	AN3 raw	AN4 raw	MAPN	MAPP	RPM	PIM	PIM V	TPS V	InjFrPr	Inj +/-	IGL	IGT	FuelT	Oil	PC%	WG%	WtrT	AirT	Knock	BatV	Speed	???(2)	O2S	???	InjFrSc
-/*{"rpm", "pim", "pimV",
-                        "TPS Voltage", "InjFp ms", "Inj",
-                        "IGL", "IGT",
-                        "Fuel", "Moilp", "Boosttp",
-                        "Boostwg", "Watertemp", "Intaketemp",
-                        "Knock", "BatteryV",
-                        "Speed", "Iscvduty", "O2volt",
-                        "na1", "Secinjpulse", "na2",
-                        "AUX1", "AUX2", "AUX3", "AUX4",
-                        "Analog1", "Analog2", "Analog3", "Analog4",
-                        "Power", "Accel", "GForce", "ForceN", "Gear", "PrimaryInjD", "AccelTimer",
-                        "Rec","Sens_PIM","Sens_VTA1","Sens_VTA2","Sens_VMOP","Sens_Wtrt","Sens_Airt",
-                        "Sens_Fuel","Sens_O2", "STR", "A/C", "PWS", "NTR", "CLT",
-                        "STP", "CAT", "ELD", "HWL", "FPD", "FPR", "APR", "PAC", "CCN", "TCN", "PRC" ,"MAP_N","MAP_P",
-                        "Basic_Injduty", "Basic_IGL", "Basic_IGT", "Basic_RPM", "Basic_KPH", "Basic_Boost", "Basic_Knock", "Basic_Watert", "Basic_Airt", "Basic_BattV",};
-*/
+/**
+ * Limits the number of write requests to the fuel map.
+ * A value lower than 8 will not write the entire fuel map.
+ * Value 4 will write up to 4600rpm.
+ */
+const int FUEL_MAP_MAX_WRITE_REQUESTS = 4;
+const int MAX_AUTOTUNE_RPM_IDX = 9; // ~4600 rpm
+const int MAX_AUTOTUNE_LOAD_IDX = 10; // ~7600 load
+const double MIN_AUTOTUNE_WATER_TEMP = 75;
+const double MIN_AUTOTUNE_RPM = 500;
+const double MIN_TPS_VOLT = 0.56;
+const double MAX_TPS_VOLT = 4.024;
+const double MAX_AUTOTUNE_TPS_CHANGE_RATE = 4; // volt / second
+const double MIN_AUTOTUNE_TPS_CHANGE_RATE = -4;
+const double MIN_AUTOTUNE_SPEED = 5; // km/h
+const double MAX_AUTOTUNE_TPS_VOLT = 3.0;
+const double MAX_AFR = 19.8;
+const double MIN_AFR = 9.8;
+
+bool closedLoopEnabled = false;
+
+// The last logged AFR value(-1 = uninitialized)
+double loggedAFR = -1;
+double lastTpsVolt = MIN_TPS_VOLT;
+QTime lastLogTime = QTime::currentTime();
+
+// Used for logging messages in fixed intervals
+long logSamplesCount = 0;
+const int LOG_INTERVAL = 10;
+
 Apexi::Apexi(QObject *parent)
-    : QObject(parent)
-    , m_dashboard(Q_NULLPTR)
-{
+        : QObject(parent), m_dashboard(Q_NULLPTR) {
 }
 
 Apexi::Apexi(DashBoard *dashboard, QObject *parent)
-    : QObject(parent)
-    , m_dashboard(dashboard)
-{
+        : QObject(parent), m_dashboard(dashboard) {
 }
 
-void Apexi::SetProtocol(const int &protocolselect)
-{
-    Protocol = protocolselect;
-}
-
-void Apexi::initSerialPort()
-{
-  /*
-    if (m_serialport)
-    {
-        delete m_serialport;
+void Apexi::initSerialPort() {
+    if (LOG_LEVEL >= LOGGING_INFO) {
+        cout << "Initializing serial port\n";
     }
-  */
     m_serialport = new SerialPort(this);
-    connect(this->m_serialport,SIGNAL(readyRead()),this,SLOT(readyToRead()));
+    connect(this->m_serialport, SIGNAL(readyRead()), this, SLOT(readyToRead()));
     connect(m_serialport, static_cast<void (QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),
             this, &Apexi::handleError);
     connect(m_serialport, &QSerialPort::bytesWritten, this, &Apexi::handleBytesWritten);
@@ -94,17 +202,21 @@ void Apexi::initSerialPort()
 }
 
 //function for flushing all serial buffers
-void Apexi::clear()
-  
-{
+void Apexi::clear() {
+    if (LOG_LEVEL >= LOGGING_INFO) {
+        cout << "Clearing serial port\n";
+    }
     m_serialport->clear();
 }
 
-
 //function to open serial port
-void Apexi::openConnection(const QString &portName)
-{
-    qDebug()<<"open Apexi";
+void Apexi::openConnection(const QString &portName) {
+    cout << "Logging level:" << LOG_LEVEL << endl
+         << "Log Interval:" << LOG_INTERVAL << endl
+         << "Closed Loop:" << (closedLoopEnabled ? "Yes" : "No") << endl;
+    if (LOG_LEVEL >= LOGGING_INFO) {
+        cout << "Opening connection\n";
+    }
     port = portName;
     initSerialPort();
     m_serialport->setPortName(port);
@@ -113,379 +225,395 @@ void Apexi::openConnection(const QString &portName)
     m_serialport->setDataBits(QSerialPort::Data8);
     m_serialport->setStopBits(QSerialPort::OneStop);
     m_serialport->setFlowControl(QSerialPort::NoFlowControl);;
-    
-    if(m_serialport->open(QIODevice::ReadWrite) == false)
-    {
+
+    if (m_serialport->open(QIODevice::ReadWrite) == false) {
+        if (LOG_LEVEL >= LOGGING_INFO) {
+            cout << "Failed to open serial communication: " << m_serialport->errorString().toStdString() << endl;
+        }
         m_dashboard->setSerialStat(m_serialport->errorString());
         Apexi::closeConnection();
-    }
-    else
-    {
+    } else {
+        if (LOG_LEVEL >= LOGGING_INFO) {
+            cout << "Connected to Serial Port\n";
+        }
         m_dashboard->setSerialStat(QString("Connected to Serialport"));
-        requestIndex = 0;
-        Apexi::sendRequest(requestIndex);
+        requestIndex = INIT_REQUEST_IDX;
+        Apexi::sendPfcReadRequest();
     }
-    
-    
 }
-void Apexi::closeConnection()
-{
-    disconnect(this->m_serialport,SIGNAL(readyRead()),this,SLOT(readyToRead()));
+
+void Apexi::closeConnection() {
+    if (LOG_LEVEL >= LOGGING_INFO) {
+        cout << "Closing connection\n";
+    }
+    disconnect(this->m_serialport, SIGNAL(readyRead()), this, SLOT(readyToRead()));
     disconnect(m_serialport, static_cast<void (QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),
                this, &Apexi::handleError);
     disconnect(m_serialport, &QSerialPort::bytesWritten, this, &Apexi::handleBytesWritten);
     disconnect(&m_timer, &QTimer::timeout, this, &Apexi::handleTimeout);
     m_serialport->close();
 }
-void Apexi::retryconnect()
-{
+
+void Apexi::retryconnect() {
+    if (LOG_LEVEL >= LOGGING_INFO) {
+        cout << "Retry connection\n";
+    }
     Apexi::openConnection(port);
 }
-void Apexi::handleTimeout()
-{
+
+void Apexi::handleTimeout() {
+    if (LOG_LEVEL >= LOGGING_INFO) {
+        cout << "Handling timeout\n";
+    }
     m_dashboard->setTimeoutStat(QString("Is Timeout : Y"));
     m_timer.stop();
     m_serialport->close();
-    if(m_serialport->open(QIODevice::ReadWrite) == false)
-    {
+    if (m_serialport->open(QIODevice::ReadWrite) == false) {
+        if (LOG_LEVEL >= LOGGING_INFO) {
+            cout << "Failed to open serial communication: " << m_serialport->errorString().toStdString() << endl;
+        }
         m_dashboard->setSerialStat(m_serialport->errorString());
-    }
-    else
-    {
+    } else {
+        if (LOG_LEVEL >= LOGGING_INFO) {
+            cout << "Connected to Serial Port\n";
+        }
         m_dashboard->setSerialStat(QString("Connected to Serialport"));
     }
-    
-    requestIndex = 2;
+
+    requestIndex = INIT_REQUEST_IDX; // TODO or just continue with live data?
     m_readData.clear();
-    
-    Apexi::sendRequest(requestIndex);
+
+    Apexi::sendPfcReadRequest();
 }
 
-void Apexi::handleError(QSerialPort::SerialPortError serialPortError)
-{
+void Apexi::handleError(QSerialPort::SerialPortError serialPortError) {
+    if (LOG_LEVEL >= LOGGING_INFO) {
+        cout << "Handling error " << m_serialport->errorString().toStdString() << endl;
+    }
     if (serialPortError == QSerialPort::ReadError) {
         QString fileName = "Errors.txt";
         QFile mFile(fileName);
-        if(!mFile.open(QFile::Append | QFile::Text)){
+        if (!mFile.open(QFile::Append | QFile::Text)) {
         }
         QTextStream out(&mFile);
-        out << "Serial Error " << (m_serialport->errorString()) <<endl;
+        out << "Serial Error " << (m_serialport->errorString()) << endl;
         mFile.close();
         m_dashboard->setSerialStat(m_serialport->errorString());
-        
     }
 }
 
-
-
-void Apexi::readyToRead()
-{
+void Apexi::readyToRead() {
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
+        cout << "readyToRead callback." << endl;
+    }
     m_readData = m_serialport->readAll();
-  /*  
-  //Test enable raw message log 
-    QString fileName = "RawMessage.txt";
-    QFile mFile(fileName);
-    if(!mFile.open(QFile::Append | QFile::Text)){
-    }
-    QTextStream out(&mFile);
-    out << m_readData.toHex() <<endl;
-    mFile.close();
-    // Test End
-  */
     m_dashboard->setRecvData(QString("Receive Data : " + m_readData.toHex()));
-    Apexi::apexiECU(m_readData);
+    Apexi::decodeResponseAndSendNextRequest(m_readData);
 }
 
-
-
-void Apexi::apexiECU(const QByteArray &buffer)
-{
-    
+/**
+ * Responsible to decode the provided PFC response and send the next request.
+ *
+ * @param buffer the raw PFC response
+ */
+void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
+        cout << "decodeResponseAndSendNextRequest: " << buffer.toHex().toStdString() << endl;
+    }
     m_buffer.append(buffer);
     QByteArray startpattern = m_writeData.left(1);
     QByteArrayMatcher startmatcher(startpattern);
-    
+
+    // No idea what is going on here!
     int pos = 0;
-    while((pos = startmatcher.indexIn(m_buffer, pos)) != -1)
-    {
+    while ((pos = startmatcher.indexIn(m_buffer, pos)) != -1) {
         m_dashboard->setRunStat(m_buffer.toHex());
-        if (pos !=0)
-        {
+        if (pos != 0) {
             m_buffer.remove(0, pos);
-            if (m_buffer.length() > expectedbytes)
-            {
-                m_buffer.remove(expectedbytes,m_buffer.length() );
+            if (m_buffer.length() > expectedbytes) {
+                m_buffer.remove(expectedbytes, m_buffer.length());
             }
         }
-        
-        if (pos == 0 )
-        {
+        if (pos == 0) {
             break;
         }
-        
-        
     }
-    
-    if (m_buffer.length() == expectedbytes)
-    {
+
+    if (m_buffer.length() == expectedbytes) {
         m_dashboard->setTimeoutStat(QString("Is Timeout : N"));
-        
-        m_apexiMsg =  m_buffer;
+
+        m_apexiMsg = m_buffer;
         m_buffer.clear();
         m_timer.stop();
-        if(requestIndex <= 6){requestIndex++;}
-        else{requestIndex = 3;}
-        readData(m_apexiMsg);
+
+        // Decode current data
+        decodePfcData(m_apexiMsg);
         m_apexiMsg.clear();
-        Apexi::sendRequest(requestIndex);
-        //        }
+
+        if (isClosedLoopConditions() && handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
+            // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
+
+            if (LOG_LEVEL >= LOGGING_INFO && getCurrentFuelMapWriteRequest() == 1) {
+                cout << "\nWriting fuel map..." << endl;
+                logFuelData(10);
+            }
+            QByteArray writePacket = QByteArray::fromRawData(getNextFuelMapWritePacket(), MAP_WRITE_PACKET_LENGTH);
+            if (LOG_LEVEL >= LOGGING_DEBUG) {
+                cout << "Sending map write packet: " << writePacket.toHex().toStdString() << endl;
+            }
+            Apexi::writeRequestPFC(writePacket);
+            //TODO should verify that the ack packet is actually received
+            expectedbytes = 3; // ack packet (0xF2 0x02 0x0B) is expected
+            m_timer.start(700);
+        } else {
+            // Decide the next request to be sent to PFC
+            if (requestIndex < MAX_REQUEST_IDX) {
+                // Once go through all requests
+                requestIndex++;
+            } else {
+                // then cycle through live data requests ADV_DATA_REQUEST..AUX_REQUEST (adv data, map idx, sensor data, basic data, aux)
+                requestIndex = FIRST_LIVE_DATA_REQUEST_IDX;
+                logSamplesCount++;
+                // New cycle of live data, so update the afr logs with the previous data
+                updateAutoTuneLogs();
+            }
+            Apexi::sendPfcReadRequest();
+        }
     }
 }
 
+bool Apexi::isClosedLoopConditions() {
+    const int rpmIdx = packageMap[0]; // col MapN 0-based
+    const int loadIdx = packageMap[1];// row MapP 0-based
+    const double tpsVolt = (double) m_dashboard->ThrottleV();
 
+    return closedLoopEnabled &&
+           rpmIdx <= MAX_AUTOTUNE_RPM_IDX &&
+           loadIdx <= MAX_AUTOTUNE_LOAD_IDX &&
+           tpsVolt <= MAX_AUTOTUNE_TPS_VOLT;
+}
 
+void Apexi::updateAutoTuneLogs() {
+    const QTime now = QTime::currentTime();
 
-void Apexi::readData(QByteArray rawmessagedata)
-{
-    
-    if( rawmessagedata.length() )
-    {
+    const int rpmIdx = packageMap[0]; // col MapN
+    const int loadIdx = packageMap[1];// row MapP
+    const double speed = (double) m_dashboard->speed();
+    const double rpm = (double) m_dashboard->rpm(); // packageBasic[3];
+    const double waterTemp = (double) m_dashboard->Watertemp(); // packageBasic[7];
+    const double tpsVolt = (double) m_dashboard->ThrottleV();
+
+    const double timeDeltaSeconds = lastLogTime.msecsTo(now) / 1000.0;
+    const double tpsChangeRate = (tpsVolt - lastTpsVolt) / timeDeltaSeconds;
+    lastLogTime = now;
+    lastTpsVolt = tpsVolt;
+
+    const bool shouldUpdateAfr =
+        // AFR value should be initialized
+        loggedAFR >= MIN_AFR && loggedAFR <= MAX_AFR &&
+        // Update AFR only when the closed loop is enabled
+        closedLoopEnabled &&
+        // Auto tune only when engine is warmed up
+        waterTemp >= MIN_AUTOTUNE_WATER_TEMP &&
+        // Auto tune only the lower RPM/Load parts of the map
+        rpmIdx <= MAX_AUTOTUNE_RPM_IDX &&
+        loadIdx <= MAX_AUTOTUNE_LOAD_IDX &&
+        // Auto tune only when the engine is actually started
+        rpm > MIN_AUTOTUNE_RPM &&
+        // Do not auto tune on sudden throttle changes (do not mess with accel enrich etc)
+        tpsChangeRate <= MAX_AUTOTUNE_TPS_CHANGE_RATE &&
+        tpsChangeRate >= MIN_AUTOTUNE_TPS_CHANGE_RATE &&
+        // Do not autotune near WOT
+        tpsVolt <= MAX_AUTOTUNE_TPS_VOLT &&
+        // Auto tune only when stationary or moving with the throttle pressed
+        (speed <= MIN_AUTOTUNE_SPEED || (speed > MIN_AUTOTUNE_SPEED && tpsVolt > MIN_TPS_VOLT));
+
+    if (shouldUpdateAfr) {
+        updateAFRData(rpmIdx, loadIdx, loggedAFR);
+    }
+
+    if (LOG_LEVEL >= LOGGING_INFO && (logSamplesCount % LOG_INTERVAL) == 0) {
+        cout << lastLogTime.toString("hh:mm:ss.zzz").toStdString()
+             << setprecision(3) << fixed
+             << ", ClosedLoopEnabled:" << (closedLoopEnabled ? "Yes" : "No")
+             << ", AutoTuning:" << (shouldUpdateAfr ? "Yes" : "No")
+             << ", WaterTemp:" << waterTemp
+             << ", MapN:" << rpmIdx
+             << ", MapP:" << loadIdx
+             << ", Rpm:" << rpm
+             << ", Speed:" << speed
+             << ", AFR:" << loggedAFR
+             << ", Tps:" << tpsVolt
+             << ", TimeDelta:" << timeDeltaSeconds
+             << ", TpsChangeRate:" << tpsChangeRate << endl;
+    }
+}
+
+void Apexi::decodePfcData(QByteArray rawmessagedata) {
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
+        cout << "PFC response packet: " << rawmessagedata.toHex().toStdString() << endl;
+    }
+    if (rawmessagedata.length()) {
         //Power FC Decode
-        quint8 requesttype = rawmessagedata[0];
-        
-        
+        const quint8 requesttype = rawmessagedata[0];
+        const quint8 responseLength = rawmessagedata[1];
         switch (requesttype) {
-        case ID::Advance:
-            Apexi::decodeAdv(rawmessagedata);
-            break;
-        case ID::SensorStrings:
-            Apexi::decodeSensorStrings(rawmessagedata);
-            break;
-        case ID::SensorData:
-            Apexi::decodeSensor(rawmessagedata);
-            break;
-        case ID::OldSensorData:
-            Apexi::decodeSensor(rawmessagedata);
-            break;
-        case ID::AuxData:
-            Apexi::decodeAux(rawmessagedata);
-            break;
-        case ID::MapIndex:
-            Apexi::decodeMap(rawmessagedata);
-            break;
-        case ID::OldMapIndex:
-            Apexi::decodeMap(rawmessagedata);
-            break;
-        case ID::BasicData:
-            Apexi::decodeBasic(rawmessagedata);
-            break;
-        case ID::OldBasicData:
-            Apexi::decodeBasic(rawmessagedata);
-            break;
-        case ID::Init:
-            Apexi::decodeInit(rawmessagedata);
-            if (reconnect == 0)
-            {
-               qDebug() << "reconnect";
-               reconnect = 1;
-               requestIndex = 0;
-               Apexi::closeConnection();
-               QTimer::singleShot(2000, this, SLOT(retryconnect()));
-
-
-            }
-            break;
-            
-            /*
-        case ID::Version:
-            Apexi::decodeVersion(rawmessagedata);
-            break;
-       */
-        default:
-            break;
+            case ID::Advance:
+                Apexi::decodeAdv(rawmessagedata);
+                break;
+            case ID::SensorStrings:
+                Apexi::decodeSensorStrings(rawmessagedata);
+                break;
+            case ID::SensorData:
+                Apexi::decodeSensor(rawmessagedata);
+                break;
+            case ID::OldSensorData:
+                Apexi::decodeSensor(rawmessagedata);
+                break;
+            case ID::AuxData:
+                Apexi::decodeAux(rawmessagedata);
+                break;
+            case ID::AuxDataBlack:
+                if (responseLength == 0x12) {
+                    // 01 12 => black datalogit aux
+                    Apexi::decodeAuxBlack(rawmessagedata);
+                } else if (responseLength == 0x07){
+                    // 01 07 => datalogit version
+                    Apexi::decodeDatalogitVersion(rawmessagedata);
+                }
+                break;
+            case ID::MapIndex:
+                Apexi::decodeMapIndices(rawmessagedata);
+                break;
+            case ID::OldMapIndex:
+                Apexi::decodeMapIndices(rawmessagedata);
+                break;
+            case ID::BasicData:
+                Apexi::decodeBasic(rawmessagedata);
+                break;
+            case ID::OldBasicData:
+                Apexi::decodeBasic(rawmessagedata);
+                break;
+            case ID::Init:
+                Apexi::decodeInit(rawmessagedata);
+                if (reconnect == 0) {
+                    qDebug() << "reconnect";
+                    reconnect = 1;
+                    requestIndex = INIT_REQUEST_IDX;
+                    Apexi::closeConnection();
+                    QTimer::singleShot(2000, this, SLOT(retryconnect()));
+                }
+                break;
+            case ID::Version:
+                // TODO
+                cout << "Platform Version:" << rawmessagedata.toStdString() << endl;
+                break;
+            case ID::FuelMapBatch1:
+                readFuelMap(1, rawmessagedata.data());
+                break;
+            case ID::FuelMapBatch2:
+                readFuelMap(2, rawmessagedata.data());
+                break;
+            case ID::FuelMapBatch3:
+                readFuelMap(3, rawmessagedata.data());
+                break;
+            case ID::FuelMapBatch4:
+                readFuelMap(4, rawmessagedata.data());
+                break;
+            case ID::FuelMapBatch5:
+                readFuelMap(5, rawmessagedata.data());
+                break;
+            case ID::FuelMapBatch6:
+                readFuelMap(6, rawmessagedata.data());
+                break;
+            case ID::FuelMapBatch7:
+                readFuelMap(7, rawmessagedata.data());
+                break;
+            case ID::FuelMapBatch8:
+                readFuelMap(8, rawmessagedata.data());
+                if (LOG_LEVEL >= LOGGING_INFO) {
+                    cout << "== Read the following fuel map ==\n";
+                    for (int r = 0; r < 20; r++) {
+                        for (int c = 0; c < 20; c++) {
+                            cout << getCurrentFuel(r, c);
+                            if (c < 19) {
+                                cout << ",";
+                            }
+                        }
+                        cout << "\n";
+                    }
+                }
+                break;
+            default:
+                break;
         }
-        
-        
-        
     }
     rawmessagedata.clear();
-    
-    
 }
 
-void Apexi::handleBytesWritten(qint64 bytes)
-{
+void Apexi::handleBytesWritten(qint64 bytes) {
     m_bytesWritten += bytes;
     if (m_bytesWritten == m_writeData.size()) {
         m_bytesWritten = 0;
     }
 }
 
-// Serial requests are send via Serial
-void Apexi::writeRequestPFC(QByteArray p_request)
-{
+void Apexi::writeRequestPFC(QByteArray p_request) {
     m_writeData = p_request;
     qint64 bytesWritten = m_serialport->write(p_request);
-   // m_dashboard->setSerialStat(QString("Sending Request " + p_request.toHex()));
-    
     if (bytesWritten == -1) {
         m_dashboard->setSerialStat(m_serialport->errorString());
     } else if (bytesWritten != m_writeData.size()) {
         m_dashboard->setSerialStat(m_serialport->errorString());
     }
-    
+
 }
 
-//Power FC requests
-
-void Apexi::sendRequest(int requestIndex)
-{
-    if (Protocol == 0){
-        switch (requestIndex){
-        
-        
-        
-        //New Apexi Structure
-        case 0:
-            //Init Platform (This returns the Platform String )
-            Apexi::writeRequestPFC(QByteArray::fromHex("F3020A"));
-            expectedbytes = 11;
-            break;
-        case 1:
-            //Apexi::getSensorStrings();
-            Apexi::writeRequestPFC(QByteArray::fromHex("DD0220"));
-            expectedbytes = 83;
-            break;
-        case 2:
-            //Init Platform (This returns the Platform String )
-            Apexi::writeRequestPFC(QByteArray::fromHex("F3020A"));
-            expectedbytes = 11;
-            break;
-            // Live Data
-        case 3:
-            //Apexi::getAdvData();
-            Apexi::writeRequestPFC(QByteArray::fromHex("F0020D"));
-            expectedbytes = 33;
-            break;
-            
-        case 4:
-            //Apexi::getMapIndices();
-            Apexi::writeRequestPFC(QByteArray::fromHex("DB0222"));
-            expectedbytes = 5;
-            break;
-        case 5:
-            //Apexi::getSensorData();
-            Apexi::writeRequestPFC(QByteArray::fromHex("DE021F"));
-            expectedbytes = 21;
-            break;
-        case 6:
-            //Apexi::getBasic();
-            Apexi::writeRequestPFC(QByteArray::fromHex("DA0223"));
-            expectedbytes = 23;
-            break;
-        case 7:
-            //Apexi::getAux();
-            Apexi::writeRequestPFC(QByteArray::fromHex("0002FD"));
-            expectedbytes = 7;
-            break;
-        }
+void Apexi::sendPfcReadRequest() {
+    // Using only New Apexi Structure (Protocol 0), Protocol 1 never used
+    ReadPacket readPacket;
+    if(requestIndex == AUX_DATA_REQUEST_IDX && majorDatalogitVersion == V1_DATALOGIT) {
+        // Override request aux data for version 1 datalogit (white)
+        readPacket = V1_AUX_DATA;
+    } else {
+        readPacket = READ_REQUESTS[requestIndex];
     }
-    if (Protocol == 1)
-    {
-        switch (requestIndex){
-        // Old Apexi Structure
-        case 0:
-            //Init Platform (This returns the Platform String )
-            Apexi::writeRequestPFC(QByteArray::fromHex("F3020A"));
-            expectedbytes = 11;
-            break;
-        case 1:
-            //Apexi::getSensorStrings();
-            Apexi::writeRequestPFC(QByteArray::fromHex("690294"));
-            expectedbytes = 83;
-            break;
-            
-            // Live Data
-        case 2:
-            //Apexi::getAdvData();
-            Apexi::writeRequestPFC(QByteArray::fromHex("F0020D"));
-            expectedbytes = 33;
-            break;
-            
-        case 3:
-            //Apexi::getMapIndices();
-            Apexi::writeRequestPFC(QByteArray::fromHex("680295"));
-            expectedbytes = 5;
-            break;
-        case 4:
-            //Apexi::getSensorData();
-            Apexi::writeRequestPFC(QByteArray::fromHex("6A0293"));
-            expectedbytes = 21;
-            break;
-        case 5:
-            //Apexi::getBasic();
-            Apexi::writeRequestPFC(QByteArray::fromHex("660297"));
-            expectedbytes = 23;
-            break;
-        case 6:
-            //Apexi::getAux();
-            Apexi::writeRequestPFC(QByteArray::fromHex("0002FD"));
-            expectedbytes = 7;
-            
-            break;
-        }
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
+        cout << "sendPfcReadRequest: " << requestIndex << "->" << readPacket.bytes.toHex().toStdString() << endl;
     }
-    
-    m_timer.start(700); //Set timout to 700 mseconds 
+    Apexi::writeRequestPFC(readPacket.bytes);
+    expectedbytes = readPacket.responseSize;
+
+    // Set timout to 700 millis
+    m_timer.start(700);
 }
 
-
-
-
-void Apexi::Auxcalc (const QString &unitaux1,const qreal &an1V0,const qreal &an2V5,const QString &unitaux2,const qreal &an3V0,const qreal &an4V5)
-{
-    qreal aux1min = an1V0;
-    qreal aux2max = an2V5;
-    qreal aux3min = an3V0;
-    qreal aux4max = an4V5;
-    QString Auxunit1 = unitaux1;
-    QString Auxunit2 = unitaux2;
-
-    Apexi::calculatorAux(aux1min,aux2max,aux3min,aux4max,Auxunit1,Auxunit2);
-}
-
-
-
-void Apexi::decodeAdv(QByteArray rawmessagedata)
-{
-    
-    fc_adv_info_t* info=reinterpret_cast<fc_adv_info_t*>(rawmessagedata.data());
-    if (Model == 1)
-    {
-        
+void Apexi::decodeAdv(QByteArray rawmessagedata) {
+    fc_adv_info_t *info = reinterpret_cast<fc_adv_info_t *>(rawmessagedata.data());
+    if (Model == 1) {
         packageADV[0] = info->RPM + add[0];
         packageADV[1] = info->Intakepress;
         packageADV[2] = info->PressureV * 0.001; //value in V
         packageADV[3] = info->ThrottleV * 0.001; //value in V
         packageADV[4] = info->Primaryinp * 0.001;
         packageADV[5] = info->Fuelc;
-        packageADV[6] = info->Leadingign -25;
-        packageADV[7] = info->Trailingign -25;
+        packageADV[6] = info->Leadingign - 25;
+        packageADV[7] = info->Trailingign - 25;
         packageADV[8] = info->Fueltemp + add[8];
         packageADV[9] = info->Moilp;     //Value lower by 10 compared to FC Edit
         packageADV[10] = info->Boosttp / 2.56;    // (FC edit shows just raw value
         packageADV[11] = info->Boostwg / 2.56;     // (FC edit shows just raw value
-        packageADV[12] = info->Watertemp -80;
-        packageADV[13] = info->Intaketemp -80;
+        packageADV[12] = info->Watertemp - 80;
+        packageADV[13] = info->Intaketemp - 80;
         packageADV[14] = info->Knock;
         packageADV[15] = info->BatteryV * 0.1;
-        packageADV[16] = info->Speed ;
+        packageADV[16] = info->Speed;
         packageADV[17] = info->Iscvduty * 0.001;
         packageADV[18] = info->O2volt;
         packageADV[19] = info->na1;
         packageADV[20] = info->Secinjpulse * 0.001;
         packageADV[21] = info->na2;
-        
+
         m_dashboard->setrpm(packageADV[0]);
         m_dashboard->setIntakepress(packageADV[1]);
         m_dashboard->setPressureV(packageADV[2]);
@@ -508,25 +636,16 @@ void Apexi::decodeAdv(QByteArray rawmessagedata)
         m_dashboard->setna1(packageADV[19]);
         m_dashboard->setSecinjpulse(packageADV[20]);
         m_dashboard->setna2(packageADV[21]);
-        
-        
-        //    //qDebug() << "Time passed since last call"<< startTime.msecsTo(QTime::currentTime());
-        //odometer += ((startTime.msecsTo(QTime::currentTime())) * ((packageADV[16]) / 3600000)); // Odometer
-        //m_dashboard->setOdo(odometer);
-        // startTime.restart();
-        
-        
     }
     // Nissan and Subaru
-    if (Model == 2)
-    {
-        fc_adv_info_t2* info=reinterpret_cast<fc_adv_info_t2*>(rawmessagedata.data());
-        
+    if (Model == 2) {
+        fc_adv_info_t2 *info = reinterpret_cast<fc_adv_info_t2 *>(rawmessagedata.data());
+
         packageADV2[0] = info->RPM;
         packageADV2[1] = info->EngLoad;
-        packageADV2[2] = info->MAF1V *0.001;
-        packageADV2[3] = info->MAF2V *0.001;
-        packageADV2[4] = info->injms *0.004;
+        packageADV2[2] = info->MAF1V * 0.001;
+        packageADV2[3] = info->MAF2V * 0.001;
+        packageADV2[4] = info->injms * 0.004;
         packageADV2[5] = info->Inj; //fc edit shows raw byte
         packageADV2[6] = info->Ign;
         packageADV2[7] = info->Dwell;
@@ -535,17 +654,17 @@ void Apexi::decodeAdv(QByteArray rawmessagedata)
             packageADV2[8] = (packageADV[8] - 0x8000) * 0.01;
         else
             packageADV2[8] = (1.0 / 2560 + 0.001) * packageADV[8];
-        packageADV2[9] = info->BoostDuty *0.005;
-        packageADV2[10] = info->Watertemp -80;
-        packageADV2[11] = info->Intaketemp -80;
+        packageADV2[9] = info->BoostDuty * 0.005;
+        packageADV2[10] = info->Watertemp - 80;
+        packageADV2[11] = info->Intaketemp - 80;
         packageADV2[12] = info->Knock;
-        packageADV2[13] = info->BatteryV *0.1;
+        packageADV2[13] = info->BatteryV * 0.1;
         packageADV2[14] = info->Speed;
-        packageADV2[15] = info->MAFactivity *0.16;
-        packageADV2[16] = info->O2volt *0.005;
-        packageADV2[17] = info->O2volt_2 *0.005;
-        packageADV2[18] = info->ThrottleV *0.001;
-        
+        packageADV2[15] = info->MAFactivity * 0.16;
+        packageADV2[16] = info->O2volt * 0.005;
+        packageADV2[17] = info->O2volt_2 * 0.005;
+        packageADV2[18] = info->ThrottleV * 0.001;
+
         m_dashboard->setrpm(packageADV2[0]);
         m_dashboard->setEngLoad(packageADV2[1]);
         m_dashboard->setMAF1V(packageADV2[2]);
@@ -564,15 +683,13 @@ void Apexi::decodeAdv(QByteArray rawmessagedata)
         m_dashboard->setMAFactivity(packageADV2[15]);
         m_dashboard->setO2volt(packageADV2[16]);
         m_dashboard->setO2volt_2(packageADV2[17]);
-        m_dashboard->setThrottleV((packageADV2[18]*100));
-        m_dashboard->setTPS((packageADV2[18]*100)/4.38);
-        
+        m_dashboard->setThrottleV((packageADV2[18] * 100));
+        m_dashboard->setTPS((packageADV2[18] * 100) / 4.38);
     }
     //Toyota
-    if (Model == 3)
-    {
-        fc_adv_info_t3* info=reinterpret_cast<fc_adv_info_t3*>(rawmessagedata.data());
-        int checkboost = (unsigned char)rawmessagedata[17];
+    if (Model == 3) {
+        fc_adv_info_t3 *info = reinterpret_cast<fc_adv_info_t3 *>(rawmessagedata.data());
+        int checkboost = (unsigned char) rawmessagedata[17];
         packageADV3[0] = mul[0] * info->RPM3 + add[0];
         //previousRev_rpm[buf_currentIndex] = packageADV[0];
         packageADV3[1] = info->Intakepress3;
@@ -582,23 +699,20 @@ void Apexi::decodeAdv(QByteArray rawmessagedata)
         packageADV3[5] = info->Fuelc3;
         packageADV3[6] = info->Ign3;
         packageADV3[7] = info->Dwell3;
-        if (checkboost == 128)
-        {
-            int convert = (unsigned char)rawmessagedata[16];
+        if (checkboost == 128) {
+            int convert = (unsigned char) rawmessagedata[16];
             advboost = convert * 0.01;
-        }
-        else
-        {
-            packageADV3[8] = info->BoostPres3 -760;
+        } else {
+            packageADV3[8] = info->BoostPres3 - 760;
             advboost = packageADV3[8];
         }
         packageADV3[9] = mul[9] * info->BoostDuty3 + add[9];
-        packageADV3[10] = info->Watertemp3 -80;
-        packageADV3[11] = info->Intaketemp3 -80;
+        packageADV3[10] = info->Watertemp3 - 80;
+        packageADV3[11] = info->Intaketemp3 - 80;
         packageADV3[12] = info->Knock3;
-        packageADV3[13] = info->BatteryV3 *0.1;
+        packageADV3[13] = info->BatteryV3 * 0.1;
         packageADV3[14] = info->Speed3;
-        
+
         // packageADV3[14] *= speed_correction;
         //previousSpeed_kph[buf_currentIndex] = packageADV[14];
         //        packageADV3[15] = mul[15] * info->Iscvduty + add[15];
@@ -608,33 +722,30 @@ void Apexi::decodeAdv(QByteArray rawmessagedata)
         packageADV3[19] = mul[19] * info->na13 + add[19];
         packageADV3[20] = 0;
         packageADV3[21] = 0;
-        
-        
-        m_dashboard->setrpm(packageADV3[0]);
+
+
+        // Skipping because already set by basic info
+        // m_dashboard->setrpm(packageADV3[0]);
+        // m_dashboard->setLeadingign(packageADV3[6]);
+        // m_dashboard->setTrailingign(packageADV3[7]);
+        // m_dashboard->setWatertemp(packageADV3[10]);
+        // m_dashboard->setIntaketemp(packageADV3[11]);
+        // m_dashboard->setBatteryV(packageADV3[13]);
+        // m_dashboard->setSpeed(packageADV3[14]);
+
         m_dashboard->setIntakepress(packageADV3[1]);
         m_dashboard->setPressureV(packageADV3[2]);
         m_dashboard->setThrottleV(packageADV3[3]);
         m_dashboard->setPrimaryinp(packageADV3[4]);
         m_dashboard->setFuelc(packageADV3[5]);
-        m_dashboard->setLeadingign(packageADV3[6]);
-        m_dashboard->setTrailingign(packageADV3[7]);
         m_dashboard->setpim(advboost);
-        m_dashboard->setWatertemp(packageADV3[10]);
-        m_dashboard->setIntaketemp(packageADV3[11]);
         m_dashboard->setKnock(packageADV3[12]);
-        m_dashboard->setBatteryV(packageADV3[13]);
-        m_dashboard->setSpeed(packageADV3[14]);
-        
-        
     }
-    
 }
 
+void Apexi::decodeSensor(QByteArray rawmessagedata) {
+    fc_sens_info_t *info = reinterpret_cast<fc_sens_info_t *>(rawmessagedata.data());
 
-void Apexi::decodeSensor(QByteArray rawmessagedata)
-{
-    fc_sens_info_t* info=reinterpret_cast<fc_sens_info_t*>(rawmessagedata.data());
-    
     packageSens[0] = info->sens1 * 0.01;
     packageSens[1] = info->sens2 * 0.01;
     packageSens[2] = info->sens3 * 0.01;
@@ -643,12 +754,12 @@ void Apexi::decodeSensor(QByteArray rawmessagedata)
     packageSens[5] = info->sens6 * 0.01;
     packageSens[6] = info->sens7 * 0.01;
     packageSens[7] = info->sens8 * 0.01;
-    
+
     QBitArray flagArray(16);
-    for (int i=0; i<16; i++)
-        flagArray.setBit(i, info->flags>>i & 1);
-    
-    
+    for (int i = 0; i < 16; i++)
+        flagArray.setBit(i, info->flags >> i & 1);
+
+
     m_dashboard->setsens1(packageSens[0]);
     m_dashboard->setsens2(packageSens[1]);
     m_dashboard->setsens3(packageSens[2]);
@@ -657,7 +768,7 @@ void Apexi::decodeSensor(QByteArray rawmessagedata)
     m_dashboard->setsens6(packageSens[5]);
     m_dashboard->setsens7(packageSens[6]);
     m_dashboard->setsens8(packageSens[7]);
-    
+
     //Bit Flags for Sensors
     m_dashboard->setFlag1(flagArray[0]);
     m_dashboard->setFlag2(flagArray[1]);
@@ -675,49 +786,110 @@ void Apexi::decodeSensor(QByteArray rawmessagedata)
     m_dashboard->setFlag14(flagArray[13]);
     m_dashboard->setFlag15(flagArray[14]);
     m_dashboard->setFlag16(flagArray[15]);
-    
-    
 }
 
-void Apexi::decodeAux(QByteArray rawmessagedata)
-{
-    fc_aux_info_t* info=reinterpret_cast<fc_aux_info_t*>(rawmessagedata.data());
-    
-    
+void Apexi::decodeAux(QByteArray rawmessagedata) {
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
+        cout << "Aux Packet:" << rawmessagedata.toHex().toStdString() << endl;
+    }
+    fc_aux_info_t *info = reinterpret_cast<fc_aux_info_t *>(rawmessagedata.data());
+
     packageAux[0] = mul[29] * info->AN1 + add[29];
     packageAux[1] = mul[29] * info->AN2 + add[29];
     packageAux[2] = mul[29] * info->AN3 + add[29];
     packageAux[3] = mul[29] * info->AN4 + add[29];
-    
-    //qDebug()<< "AN1" << packageAux[0] ;
-    //qDebug()<< "AN2" << packageAux[1] ;
-    //qDebug()<< "AN3" << packageAux[2] ;
-    //qDebug()<< "AN4" << packageAux[3] ;
-    //Analog1
-    AN1AN2calc = (((((auxval2-auxval1)*0.2) * (packageAux[0] - packageAux[1]))) + auxval1);
-    AN3AN4calc = ((((auxval4-auxval3)*0.2) * (packageAux[2] - packageAux[3])) + auxval3);
-    m_dashboard->setauxcalc1(AN1AN2calc);
-    m_dashboard->setauxcalc2(AN3AN4calc);
-    //qDebug()<< "AN1-AN2" << AN1AN2calc ;
-    //qDebug()<< "AN1-AN2" << AN3AN4calc ;
-    
+
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
+        cout << fixed << setprecision(3)
+             << " An1:" <<  packageAux[0]
+             << " An3:" <<  packageAux[2]
+             << endl;
+    }
+
+    const double auxCalc1 = ((((an1_2volt5 - an1_2volt0) * 0.2) * (packageAux[0] - packageAux[1])) + an1_2volt0);
+    const double auxCalc2 = ((((an3_4volt5 - an3_4volt0) * 0.2) * (packageAux[2] - packageAux[3])) + an3_4volt0);
+
+    // TODO should be configurable, for now wideband is tied with An3-4
+    loggedAFR = auxCalc2;
+
+    m_dashboard->setauxcalc1(auxCalc1);
+    m_dashboard->setauxcalc2(auxCalc2);
 }
 
+void Apexi::decodeAuxBlack(QByteArray rawmessagedata) {
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
+        cout << "Aux(Black) Packet:" << rawmessagedata.toHex().toStdString() << endl;
+    }
 
-void Apexi::decodeMap(QByteArray rawmessagedata)
-{
-    fc_map_info_t* info=reinterpret_cast<fc_map_info_t*>(rawmessagedata.data());
-    
-    packageMap[0] = mul[0] * info->Map_N + add[0];
-    packageMap[1] = mul[0] * info->Map_P + add[0];
-    
+    fc_aux2_info_t *info = reinterpret_cast<fc_aux2_info_t *>(rawmessagedata.data());
+
+    const double an1 = info -> AN1 * AUX_BLACK_VOLT_TRANSFORM;
+    const double an2 = info -> AN2 * AUX_BLACK_VOLT_TRANSFORM;
+    const double an3 = info -> AN3 * AUX_BLACK_VOLT_TRANSFORM;
+    const double an4 = info -> AN4 * AUX_BLACK_VOLT_TRANSFORM;
+    const double an5 = info -> AN5 * AUX_BLACK_VOLT_TRANSFORM;
+    const double an6 = info -> AN6 * AUX_BLACK_VOLT_TRANSFORM;
+    const double an7 = info -> AN7 * AUX_BLACK_VOLT_TRANSFORM;
+    const double an8 = info -> AN8 * AUX_BLACK_VOLT_TRANSFORM;
+
+    const double auxCalc1 = ((an1_2volt5 - an1_2volt0) / MAX_AUX_VOLT) * (an1 - an2) + an1_2volt0;
+    const double auxCalc2 = ((an3_4volt5 - an3_4volt0) / MAX_AUX_VOLT) * (an3 - an4) + an3_4volt0;
+    const double auxCalc3 = ((an5_6volt5 - an5_6volt0) / MAX_AUX_VOLT) * (an5 - an6) + an5_6volt0;
+    const double auxCalc4 = ((an7_8volt5 - an7_8volt0) / MAX_AUX_VOLT) * (an7 - an8) + an7_8volt0;
+
+    // TODO should be configurable, for now wideband is tied with An3-4
+    loggedAFR = auxCalc2;
+
+    m_dashboard->setauxcalc1(auxCalc1);
+    m_dashboard->setauxcalc2(auxCalc2);
+    m_dashboard->setauxcalc3(auxCalc3);
+    m_dashboard->setauxcalc4(auxCalc4);
+
+    if (LOG_LEVEL >= LOGGING_DEBUG) {
+        cout << fixed << setprecision(3)
+             << " an1_2volt0: " << an1_2volt0
+             << " an1_2volt5: " << an1_2volt5
+             << " an3_4volt0: " << an3_4volt0
+             << " an3_4volt5: " << an3_4volt5
+             << " an5_6volt0: " << an5_6volt0
+             << " an5_6volt5: " << an5_6volt5
+             << " an7_8volt0: " << an7_8volt0
+             << " an7_8volt5: " << an7_8volt5 << endl;
+
+        cout << fixed << setprecision(3)
+             << " AN1: " << an1
+             << " AN2: " << an2
+             << " AN3: " << an3
+             << " AN4: " << an4
+             << " AN5: " << an5
+             << " AN6: " << an6
+             << " AN7: " << an7
+             << " AN8: " << an8 << endl;
+
+        cout << fixed << setprecision(3)
+             << " auxCalc1: " << auxCalc1
+             << " auxCalc2: " << auxCalc2
+             << " auxCalc3: " << auxCalc3
+             << " auxCalc4: " << auxCalc4 << endl;
+    }
 }
-void Apexi::decodeBasic(QByteArray rawmessagedata)
-{
-    fc_Basic_info_t* info=reinterpret_cast<fc_Basic_info_t*>(rawmessagedata.data());
-    
+
+// Decodes map indices (MapN, MapP)
+void Apexi::decodeMapIndices(QByteArray rawmessagedata) {
+    fc_map_info_t *info = reinterpret_cast<fc_map_info_t *>(rawmessagedata.data());
+
+    packageMap[0] = mul[0] * info->Map_N + add[0]; // rpm (column)
+    packageMap[1] = mul[0] * info->Map_P + add[0]; // load (row)
+
+    m_dashboard->setMapN(packageMap[0]);
+    m_dashboard->setMapP(packageMap[1]);
+}
+
+void Apexi::decodeBasic(QByteArray rawmessagedata) {
+    fc_Basic_info_t *info = reinterpret_cast<fc_Basic_info_t *>(rawmessagedata.data());
+
     qreal Boost;
-    int checkboost = (unsigned char)rawmessagedata[13];
+    int checkboost = (unsigned char) rawmessagedata[13];
     packageBasic[0] = mul[15] * info->Basic_Injduty + add[0];
     packageBasic[1] = info->Basic_IGL;
     packageBasic[2] = info->Basic_IGT;
@@ -729,28 +901,14 @@ void Apexi::decodeBasic(QByteArray rawmessagedata)
     packageBasic[8] = mul[0] * info->Basic_Airt + add[8];
     packageBasic[9] = mul[15] * info->Basic_BattV + add[0];
 
-        if (checkboost == 128)
-        {
-            int test = (unsigned char)rawmessagedata[12];
-            Boost = test * 0.01;
-         }
-        else{
-            Boost = (packageBasic[5] -760);
-        }
+    if (checkboost == 128) {
+        int test = (unsigned char) rawmessagedata[12];
+        Boost = test * 0.01;
+    } else {
+        Boost = (packageBasic[5] - 760);
+    }
 
-/*
-    else{
-       // qDebug()<< "Mdl1" << packageBasic[5];
-        if (packageBasic[5] >= 0)
-        {
-            Boost = (packageBasic[5] -760) * 0.01;
-        }
-        else{
-            Boost = packageBasic[5] -760; // while boost pressure is negative show pressure in mmhg
-        }
-      }
-*/
-    //m_dashboard->setInjDuty(packageBasic[0]);
+    m_dashboard->setInjDuty(packageBasic[0]);
     m_dashboard->setLeadingign(packageBasic[1]);
     m_dashboard->setTrailingign(packageBasic[2]);
     m_dashboard->setrpm(packageBasic[3]);
@@ -760,112 +918,157 @@ void Apexi::decodeBasic(QByteArray rawmessagedata)
     m_dashboard->setWatertemp(packageBasic[7]);
     m_dashboard->setIntaketemp(packageBasic[8]);
     m_dashboard->setBatteryV(packageBasic[9]);
-/*
-    QString fileName = "Basic.txt";
-    QFile mFile(fileName);
-    if(!mFile.open(QFile::Append | QFile::Text)){
-    }
-    QTextStream out(&mFile);
-    out << rawmessagedata.toHex() <<endl;
-    mFile.close();
-*/    
 }
 
-/*
-  
-void Apexi::decodeVersion(QByteArray rawmessagedata)
-{
-    //    ui->lineVersion->setText (QString(rawmessagedata).mid(2,5));
-}
-*/
-void Apexi::decodeInit(QByteArray rawmessagedata)
-{
-    Modelname = QString(rawmessagedata).mid(2,8);
+void Apexi::decodeInit(QByteArray rawmessagedata) {
+    const QString modelname = QString(rawmessagedata).mid(2, 8);
     //Mazda
-    if (Modelname == "13B1    " || Modelname == "13B-REW " || Modelname == "13B-REW2" || Modelname == "13B-REW3" || Modelname == "13BT1PRO" || Modelname == "13BR1PRO" || Modelname == "13BR2PRO" || Modelname == "13BR3PRO")
-    {
-        Model =1;
-    }   
+    if (modelname == "13B1    " || modelname == "13B-REW " || modelname == "13B-REW2" || modelname == "13B-REW3" ||
+        modelname == "13BT1PRO" || modelname == "13BR1PRO" || modelname == "13BR2PRO" || modelname == "13BR3PRO") {
+        Model = 1;
+    }
     //Nissan
-    if (Modelname == "NISSAN-L" || Modelname == "CA18DET " || Modelname == "SR20DE1 " || Modelname == "SR20DE2 " || Modelname == "SR20DE3 " || Modelname == "SR20DE4 " || Modelname == "SR20DET1" || Modelname == "SR20DET2" || Modelname == "SR20DET3" || Modelname == "SR20DET4" || Modelname == "SR20DET5" || Modelname == "SR20DET6" || Modelname == "RB20DET " || Modelname == "RB25DET " || Modelname == "RB25DET2" || Modelname == "RB26DETT" || Modelname == "VG30DETT" || Modelname == "CA181PRO" || Modelname == "SR2N1PRO" || Modelname == "SR2N2PRO" || Modelname == "SR2N3PRO" || Modelname == "SR2N4PRO" || Modelname == "SR201PRO" || Modelname == "SR202PRO" || Modelname == "SR203PRO" || Modelname == "SR204PRO" || Modelname == "SR205PRO" || Modelname == "SR206PRO" || Modelname == "RB201PRO" || Modelname == "RB251PRO" || Modelname == "RB252PRO" || Modelname == "RB261PRO" || Modelname == "RB262PRO" || Modelname == "RB26Pro " || Modelname == "RB26PRO " || Modelname == "RB26PRO1" || Modelname == "RB25PRO2" || Modelname == "CA18T1-D" || Modelname == "SR20T1-D" || Modelname == "SR20T2-D" || Modelname == "SR20T3-D" || Modelname == "SR20T4-D" || Modelname == "SR20T5-D" || Modelname == "RB26_1-D" || Modelname == "RB26_2-D" || Modelname == "VG30TT-D")
-    {
-        Model =2;
+    if (modelname == "NISSAN-L" || modelname == "CA18DET " || modelname == "SR20DE1 " || modelname == "SR20DE2 " ||
+        modelname == "SR20DE3 " || modelname == "SR20DE4 " || modelname == "SR20DET1" || modelname == "SR20DET2" ||
+        modelname == "SR20DET3" || modelname == "SR20DET4" || modelname == "SR20DET5" || modelname == "SR20DET6" ||
+        modelname == "RB20DET " || modelname == "RB25DET " || modelname == "RB25DET2" || modelname == "RB26DETT" ||
+        modelname == "VG30DETT" || modelname == "CA181PRO" || modelname == "SR2N1PRO" || modelname == "SR2N2PRO" ||
+        modelname == "SR2N3PRO" || modelname == "SR2N4PRO" || modelname == "SR201PRO" || modelname == "SR202PRO" ||
+        modelname == "SR203PRO" || modelname == "SR204PRO" || modelname == "SR205PRO" || modelname == "SR206PRO" ||
+        modelname == "RB201PRO" || modelname == "RB251PRO" || modelname == "RB252PRO" || modelname == "RB261PRO" ||
+        modelname == "RB262PRO" || modelname == "RB26Pro " || modelname == "RB26PRO " || modelname == "RB26PRO1" ||
+        modelname == "RB25PRO2" || modelname == "CA18T1-D" || modelname == "SR20T1-D" || modelname == "SR20T2-D" ||
+        modelname == "SR20T3-D" || modelname == "SR20T4-D" || modelname == "SR20T5-D" || modelname == "RB26_1-D" ||
+        modelname == "RB26_2-D" || modelname == "VG30TT-D") {
+        Model = 2;
     }
     //Toyota
-    if (Modelname == "TOYOTA-L" || Modelname == "1ZZ-FE  " || Modelname == "1ZZ-FET " || Modelname == "2ZZ-GE  " || Modelname == "3S-GE   " || Modelname == "3SGET   " || Modelname == "1JZ-GTE " || Modelname == "1JZGT-AT" || Modelname == "4A-G1   " || Modelname == "4A-G2   " || Modelname == "1JGT1PRO" || Modelname == "TOYOTA-D" || Modelname == "4A-GE   " || Modelname == "4A-GE1  " || Modelname == "4A-GE2  " || Modelname == "4A-GE3  " || Modelname == "4AGE1-TH" || Modelname == "4AGE2-TH" || Modelname == "4AGE3-TH" || Modelname == "4E-FTE1 " || Modelname == "4E-FTE2 " || Modelname == "1JZGT-D " || Modelname == "3S-GE1  " || Modelname == "3S-GE2  " || Modelname == "3S-GTE  " || Modelname == "3S-GTE2 " || Modelname == "3S-GTE3 " || Modelname == "1JZ-GTE2" || Modelname == "1JZ-GTE3" || Modelname == "2JZ-GTE1" || Modelname == "2JZ-GTE2" || Modelname == "4AGE1PRO" || Modelname == "4AGE2PRO" || Modelname == "4AGE3PRO" || Modelname == "4EFT1PRO" || Modelname == "4EFT2PRO" || Modelname == "3SGE1PRO" || Modelname == "3SGT1PRO" || Modelname == "3SGT2PRO" || Modelname == "3SGT3PRO" || Modelname == "1JGT2PRO" || Modelname == "1JGT3PRO" || Modelname == "2JGT1PRO" || Modelname == "2JGT2PRO")
-    {
-        Model =3;
+    if (modelname == "TOYOTA-L" || modelname == "1ZZ-FE  " || modelname == "1ZZ-FET " || modelname == " 2ZZ-GE " ||
+        modelname == "3S-GE   " || modelname == "3SGET   " || modelname == "1JZ-GTE " || modelname == "1JZGT-AT" ||
+        modelname == "4A-G1   " || modelname == "4A-G2   " || modelname == "1JGT1PRO" || modelname == "TOYOTA-D" ||
+        modelname == "4A-GE   " || modelname == "4A-GE1  " || modelname == "4A-GE2  " || modelname == "4A-GE3  " ||
+        modelname == "4AGE1-TH" || modelname == "4AGE2-TH" || modelname == "4AGE3-TH" || modelname == "4E-FTE1 " ||
+        modelname == "4E-FTE2 " || modelname == "1JZGT-D " || modelname == "3S-GE1  " || modelname == "3S-GE2  " ||
+        modelname == "3S-GTE  " || modelname == "3S-GTE2 " || modelname == "3S-GTE3 " || modelname == "1JZ-GTE2" ||
+        modelname == "1JZ-GTE3" || modelname == "2JZ-GTE1" || modelname == "2JZ-GTE2" || modelname == "4AGE1PRO" ||
+        modelname == "4AGE2PRO" || modelname == "4AGE3PRO" || modelname == "4EFT1PRO" || modelname == "4EFT2PRO" ||
+        modelname == "3SGE1PRO" || modelname == "3SGT1PRO" || modelname == "3SGT2PRO" || modelname == "3SGT3PRO" ||
+        modelname == "1JGT2PRO" || modelname == "1JGT3PRO" || modelname == "2JGT1PRO" || modelname == "2JGT2PRO") {
+        Model = 3;
     }
     //Subaru
-    if (Modelname == "EJ20G   " || Modelname == "EJ20K   " || Modelname == "EJ207   " || Modelname == "EJ20R   " || Modelname == "EJ20GPRO")
-    {
-        Model =2;
+    if (modelname == "EJ20G   " || modelname == "EJ20K   " || modelname == "EJ207   " || modelname == "EJ20R   " ||
+        modelname == "EJ20GPRO") {
+        Model = 2;
     }
     //Honda
-    if (Modelname == "D15B    " || Modelname == "B16A1   " || Modelname == "B16A-US " || Modelname == "B16A2   " || Modelname == "B16A1-TH" || Modelname == "B16B    " || Modelname == "B16B2   " || Modelname == "B16BT   " || Modelname == "B16B1-TH" || Modelname == "B16B2-TH" || Modelname == "B18C    " || Modelname == "B18C-US " || Modelname == "B18C2   " || Modelname == "B18CT   " || Modelname == "B18C1-TH" || Modelname == "B16A1PRO" || Modelname == "B16A2PRO" || Modelname == "B16B1PRO" || Modelname == "B16B2PRO" || Modelname == "B18C1PRO" || Modelname == "H22A    " )
-    {
-        Model =2;
+    if (modelname == "D15B    " || modelname == "B16A1   " || modelname == "B16A-US " || modelname == "B16A2   " ||
+        modelname == "B16A1-TH" || modelname == "B16B    " || modelname == "B16B2   " || modelname == "B16BT   " ||
+        modelname == "B16B1-TH" || modelname == "B16B2-TH" || modelname == "B18C    " || modelname == "B18C-US " ||
+        modelname == "B18C2   " || modelname == "B18CT   " || modelname == "B18C1-TH" || modelname == "B16A1PRO" ||
+        modelname == "B16A2PRO" || modelname == "B16B1PRO" || modelname == "B16B2PRO" || modelname == "B18C1PRO" ||
+        modelname == "H22A    ") {
+        Model = 2;
     }
     //Mitsubishi
-    if (Modelname == "4G63    " || Modelname == "4G63-US " || Modelname == "4G63-3  " || Modelname == "4G63-5  " || Modelname == "4G63-6  " || Modelname == "4G63-7  " ||  Modelname == "4G63D_US" || Modelname == "4G63-D  " || Modelname == "4G63-D3 " || Modelname == "4G63-D4 " || Modelname == "4G63-D5 " || Modelname == "4G63-D6 " || Modelname == "4G63-D7 ")
-    {
-        Model =3;
-    }    
-    m_dashboard->setPlatform(QString(rawmessagedata).mid(2,8));
+    if (modelname == "4G63    " || modelname == "4G63-US " || modelname == "4G63-3  " || modelname == "4G63-5  " ||
+        modelname == "4G63-6  " || modelname == "4G63-7  " || modelname == "4G63D_US" || modelname == "4G63-D  " ||
+        modelname == "4G63-D3 " || modelname == "4G63-D4 " || modelname == "4G63-D5 " || modelname == "4G63-D6 " ||
+        modelname == "4G63-D7 ") {
+        Model = 3;
+    }
+
+    if (Model == 0) {
+        cout << "Could not recognize platform:" << modelname.toStdString() << endl;
+    }
+
+    m_dashboard->setPlatform(modelname);
+
+    if (LOG_LEVEL >= LOGGING_INFO) {
+        cout << "Decode Init. Platform:" << modelname.toStdString() << ", Model: "
+             << Model << ", Ecu Idx: " << m_dashboard->ecu() << endl;
+    }
 }
 
-void Apexi::decodeSensorStrings(QByteArray rawmessagedata)
-{
-    
-    m_dashboard->setSensorString1 (QString(rawmessagedata).mid(2,4));
-    m_dashboard->setSensorString2 (QString(rawmessagedata).mid(6,4));
-    m_dashboard->setSensorString3 (QString(rawmessagedata).mid(10,4));
-    m_dashboard->setSensorString4 (QString(rawmessagedata).mid(14,4));
-    m_dashboard->setSensorString5 (QString(rawmessagedata).mid(18,4));
-    m_dashboard->setSensorString6 (QString(rawmessagedata).mid(22,4));
-    m_dashboard->setSensorString7 (QString(rawmessagedata).mid(26,4));
-    m_dashboard->setSensorString8 (QString(rawmessagedata).mid(30,4));
-    
-    
-    m_dashboard->setFlagString1 (QString(rawmessagedata).mid(34,3));
-    m_dashboard->setFlagString2 (QString(rawmessagedata).mid(37,3));
-    m_dashboard->setFlagString3 (QString(rawmessagedata).mid(40,3));
-    m_dashboard->setFlagString4 (QString(rawmessagedata).mid(43,3));
-    m_dashboard->setFlagString5 (QString(rawmessagedata).mid(46,3));
-    m_dashboard->setFlagString6 (QString(rawmessagedata).mid(49,3));
-    m_dashboard->setFlagString7 (QString(rawmessagedata).mid(52,3));
-    m_dashboard->setFlagString8 (QString(rawmessagedata).mid(55,3));
-    m_dashboard->setFlagString9 (QString(rawmessagedata).mid(58,3));
-    m_dashboard->setFlagString10 (QString(rawmessagedata).mid(61,3));
-    m_dashboard->setFlagString11 (QString(rawmessagedata).mid(64,3));
-    m_dashboard->setFlagString12 (QString(rawmessagedata).mid(67,3));
-    m_dashboard->setFlagString13 (QString(rawmessagedata).mid(70,3));
-    m_dashboard->setFlagString14 (QString(rawmessagedata).mid(73,3));
-    m_dashboard->setFlagString15 (QString(rawmessagedata).mid(76,3));
-    m_dashboard->setFlagString16 (QString(rawmessagedata).mid(79,3));
+void Apexi::decodeDatalogitVersion(QByteArray rawmessagedata) {
+    // Sample response from black datalogit
+    // 01 07 56 32 2e 30 00 11
+    //       V  2  .  0
+    majorDatalogitVersion = rawmessagedata[3];
+    if (LOG_LEVEL >= LOGGING_INFO) {
+        cout << "Datalogit Version(raw):" << rawmessagedata.toStdString() << endl
+             << "Decoded major version:" << majorDatalogitVersion << endl;
+    }
 }
 
-void Apexi::calculatorAux(float aux1min,float aux2max,float aux3min,float aux4max,QString Auxunit1,QString Auxunit2)
-{
-    auxval1 = aux1min;
-    auxval2 = aux2max;
-    auxval3 = aux3min;
-    auxval4 = aux4max;
+void Apexi::decodeSensorStrings(QByteArray rawmessagedata) {
+
+    m_dashboard->setSensorString1(QString(rawmessagedata).mid(2, 4));
+    m_dashboard->setSensorString2(QString(rawmessagedata).mid(6, 4));
+    m_dashboard->setSensorString3(QString(rawmessagedata).mid(10, 4));
+    m_dashboard->setSensorString4(QString(rawmessagedata).mid(14, 4));
+    m_dashboard->setSensorString5(QString(rawmessagedata).mid(18, 4));
+    m_dashboard->setSensorString6(QString(rawmessagedata).mid(22, 4));
+    m_dashboard->setSensorString7(QString(rawmessagedata).mid(26, 4));
+    m_dashboard->setSensorString8(QString(rawmessagedata).mid(30, 4));
+
+
+    m_dashboard->setFlagString1(QString(rawmessagedata).mid(34, 3));
+    m_dashboard->setFlagString2(QString(rawmessagedata).mid(37, 3));
+    m_dashboard->setFlagString3(QString(rawmessagedata).mid(40, 3));
+    m_dashboard->setFlagString4(QString(rawmessagedata).mid(43, 3));
+    m_dashboard->setFlagString5(QString(rawmessagedata).mid(46, 3));
+    m_dashboard->setFlagString6(QString(rawmessagedata).mid(49, 3));
+    m_dashboard->setFlagString7(QString(rawmessagedata).mid(52, 3));
+    m_dashboard->setFlagString8(QString(rawmessagedata).mid(55, 3));
+    m_dashboard->setFlagString9(QString(rawmessagedata).mid(58, 3));
+    m_dashboard->setFlagString10(QString(rawmessagedata).mid(61, 3));
+    m_dashboard->setFlagString11(QString(rawmessagedata).mid(64, 3));
+    m_dashboard->setFlagString12(QString(rawmessagedata).mid(67, 3));
+    m_dashboard->setFlagString13(QString(rawmessagedata).mid(70, 3));
+    m_dashboard->setFlagString14(QString(rawmessagedata).mid(73, 3));
+    m_dashboard->setFlagString15(QString(rawmessagedata).mid(76, 3));
+    m_dashboard->setFlagString16(QString(rawmessagedata).mid(79, 3));
+}
+
+void Apexi::enableClosedLoop(bool enable) {
+    closedLoopEnabled = enable;
+}
+
+void Apexi::setAuxCalcData(float aux1min, float aux1max,
+                           float aux2min, float aux2max,
+                           float aux3min, float aux3max,
+                           QString Auxunit1,
+                           QString Auxunit2, QString Auxunit3) {
+    an1_2volt0 = aux1min;
+    an1_2volt5 = aux1max;
+    an3_4volt0 = aux2min;
+    an3_4volt5 = aux2max;
+    an5_6volt0 = aux3min;
+    an5_6volt5 = aux3max;
     Auxname1 = Auxunit1;
     Auxname2 = Auxunit2;
-    qDebug() << Auxunit1<<auxval1 <<auxval2 <<Auxunit2 << auxval3<<auxval4;
+    Auxname3 = Auxunit3;
+
+    if (LOG_LEVEL >= LOGGING_INFO) {
+        cout << "AuxCalcData:" << endl
+             << " an1_2volt0:" << an1_2volt0 << endl
+             << " an1_2volt5:" << an1_2volt5 << endl
+             << " an3_4volt0:" << an3_4volt0 << endl
+             << " an3_4volt5:" << an3_4volt5 << endl
+             << " an5_6volt0:" << an5_6volt0 << endl
+             << " an5_6volt5:" << an5_6volt5 << endl;
+    }
 }
 
-void Apexi::writeDashfile(const QString &gauge1,const QString &gauge2,const QString &gauge3,const QString &gauge4,const QString &gauge5,const QString &gauge6)
-{
+void Apexi::writeDashfile(const QString &gauge1, const QString &gauge2, const QString &gauge3, const QString &gauge4,
+                          const QString &gauge5, const QString &gauge6) {
 //Creates the dashboard file for the Apexi Dash
 
-    QString filename="UserDashApexi.txt";
-    QFile file( filename );
-    if ( file.open(QIODevice::ReadWrite | QIODevice::Truncate | QIODevice::Text) )
-
-    {
-        QTextStream stream( &file );
+    QString filename = "UserDashApexi.txt";
+    QFile file(filename);
+    if (file.open(QIODevice::ReadWrite | QIODevice::Truncate | QIODevice::Text)) {
+        QTextStream stream(&file);
         stream << gauge1 << endl;
         stream << gauge2 << endl;
         stream << gauge3 << endl;
@@ -874,12 +1077,10 @@ void Apexi::writeDashfile(const QString &gauge1,const QString &gauge2,const QStr
         stream << gauge6 << endl;
     }
 
-    QString filename2="/home/pi/UserDashboards/UserDashApexi.txt";
-    QFile file2( filename2 );
-    if ( file2.open(QIODevice::ReadWrite  | QIODevice::Truncate | QIODevice::Text) )
-
-    {
-        QTextStream stream( &file2 );
+    QString filename2 = "/home/pi/UserDashboards/UserDashApexi.txt";
+    QFile file2(filename2);
+    if (file2.open(QIODevice::ReadWrite | QIODevice::Truncate | QIODevice::Text)) {
+        QTextStream stream(&file2);
         stream << gauge1 << endl;
         stream << gauge2 << endl;
         stream << gauge3 << endl;
@@ -887,6 +1088,4 @@ void Apexi::writeDashfile(const QString &gauge1,const QString &gauge2,const QStr
         stream << gauge5 << endl;
         stream << gauge6 << endl;
     }
-
-
 }

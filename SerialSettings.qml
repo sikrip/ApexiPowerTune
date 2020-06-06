@@ -90,12 +90,16 @@ Quick1.TabView {
                     //property alias gpsBaud: serialGPSBaud.currentText
                     //property alias gpsBaudindex: serialGPSBaud.currentIndex
                     property alias ecuType: ecuSelect.currentText
+                    property alias closedLoop: closedLoopSwitch.checked
                     property alias auxunit1: unitaux1.text
-                    property alias aux1: an1V0.text
-                    property alias aux2: an2V5.text
+                    property alias aux1: aux1V0.text
+                    property alias aux2: aux1V5.text
                     property alias auxunit2: unitaux2.text
-                    property alias aux3: an3V0.text
-                    property alias aux4: an4V5.text
+                    property alias aux3: aux2V0.text
+                    property alias aux4: aux2V5.text
+                    property alias auxunit3: unitaux3.text
+                    property alias aux3V0: aux3V0.text
+                    property alias aux3V5: aux3V5.text
                     property alias goProVariant: goProSelect.currentIndex
                     property alias password: goPropass.text
                     property alias vehicleweight: weight.text
@@ -322,20 +326,21 @@ Quick1.TabView {
                             inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhPreferLowercase | Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
                             Component.onCompleted: {transferSettings.sendSettings() }
                         }
-                        Text
-                        {
-                            text: "Logfile name:"
+                        Text {
+                            text: "Closed Loop :"
                             font.pixelSize: windowbackround.width / 55
                             color: "white"
                         }
-                        TextField {
-                            id: logfilenameSelect
-                            text: qsTr("DataLog")
+                        Switch {
+                            id: closedLoopSwitch
                             width: windowbackround.width / 5
                             height: windowbackround.height /15
                             font.pixelSize: windowbackround.width / 55
-                            inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhPreferLowercase | Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
-                            //enterKeyAction: EnterKeyAction.Next
+                            text: qsTr("Off")
+                            Component.onCompleted: {
+                                closedLoopItem.toggle()
+                            }
+                            onCheckedChanged: closedLoopItem.toggle()
                         }
                         Text
                         {
@@ -557,7 +562,7 @@ Quick1.TabView {
                             width: windowbackround.width / 5
                             height: windowbackround.height /15
                             font.pixelSize: windowbackround.width / 55
-                            text: qsTr("Data Logger")
+                            text: qsTr("Logging: Off")
                             Component.onCompleted: {logger.datalogger()}
                             onCheckedChanged: logger.datalogger()
                         }
@@ -616,7 +621,7 @@ Quick1.TabView {
                             Text  { text: "Name";font.pixelSize: windowbackround.width / 55}
                             Text  { text: "    ";font.pixelSize: windowbackround.width / 55}
                             TextField {
-                                id: an1V0
+                                id: aux1V0
                                 width: windowbackround.width / 10
                                 height: windowbackround.height /15
                                 font.pixelSize: windowbackround.width / 55
@@ -625,7 +630,7 @@ Quick1.TabView {
                                 placeholderText: qsTr("9")
                             }
                             TextField {
-                                id: an2V5
+                                id: aux1V5
                                 width: windowbackround.width / 10
                                 height: windowbackround.height /15
                                 font.pixelSize: windowbackround.width / 55
@@ -633,7 +638,6 @@ Quick1.TabView {
                                 inputMethodHints: Qt.ImhFormattedNumbersOnly
                                 placeholderText: qsTr("16")
                             }
-
                             TextField {
                                 id: unitaux1
                                 width: windowbackround.width / 10
@@ -643,7 +647,7 @@ Quick1.TabView {
                             }
                             Text  { text: "AN1-2";font.pixelSize: windowbackround.width / 55}
                             TextField {
-                                id: an3V0
+                                id: aux2V0
                                 width: windowbackround.width / 10
                                 height: windowbackround.height /15
                                 font.pixelSize: windowbackround.width / 55
@@ -653,7 +657,7 @@ Quick1.TabView {
 
                             }
                             TextField {
-                                id: an4V5
+                                id: aux2V5
                                 width: windowbackround.width / 10
                                 height: windowbackround.height /15
                                 font.pixelSize: windowbackround.width / 55
@@ -669,6 +673,33 @@ Quick1.TabView {
                                 placeholderText: qsTr("AFR")
                             }
                             Text  { text: "AN3-4";font.pixelSize: windowbackround.width / 55}
+
+                            TextField {
+                                id: aux3V0
+                                width: windowbackround.width / 10
+                                height: windowbackround.height /15
+                                font.pixelSize: windowbackround.width / 55
+                                //validator: DoubleValidator {bottom: -1000.0; top: 1000.0;notation : DoubleValidator.StandardNotation ; decimals : 1}
+                                inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                placeholderText: qsTr("0")
+                            }
+                            TextField {
+                                id: aux3V5
+                                width: windowbackround.width / 10
+                                height: windowbackround.height /15
+                                font.pixelSize: windowbackround.width / 55
+                                // validator: DoubleValidator {bottom: -1000.0; top: 1000.0;notation : DoubleValidator.StandardNotation ; decimals : 1}
+                                inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                placeholderText: qsTr("5")
+                            }
+                            TextField {
+                                id: unitaux3
+                                width: windowbackround.width / 10
+                                height: windowbackround.height /15
+                                font.pixelSize: windowbackround.width / 55
+                                placeholderText: qsTr("AN5-6")
+                            }
+                            Text  { text: "AN5-6";font.pixelSize: windowbackround.width / 55}
                         }
                     }
                 }
@@ -729,10 +760,18 @@ Quick1.TabView {
                 //Logger on off function
                 id: logger
                 property var loggeron: 0
-                function datalogger()
-                {
-                    if (loggerswitch.checked == true) logger.loggeron = 1, Logger.startLog(logfilenameSelect.text);
-                    if (loggerswitch.checked == false) logger.loggeron = 0,Logger.stopLog();
+                function datalogger() {
+                    if (loggerswitch.checked == true) logger.loggeron = 1, loggerswitch.text = "Logging: On", Logger.startLog();
+                    if (loggerswitch.checked == false) logger.loggeron = 0, loggerswitch.text = "Logging: Off", Logger.stopLog();
+
+                }            }
+            Item {
+                // Closed loop on off
+                id: closedLoopItem
+                property var closedLoopOn: 0
+                function toggle() {
+                    if (closedLoopSwitch.checked == true) closedLoopItem.closedLoopOn = 1, closedLoopSwitch.text = "On", Apexi.enableClosedLoop(true);
+                    if (closedLoopSwitch.checked == false) closedLoopItem.closedLoopOn = 0, closedLoopSwitch.text = "Off", Apexi.enableClosedLoop(false);
                 }
             }
             Item {
@@ -751,19 +790,36 @@ Quick1.TabView {
                     Connect.openConnection(serialName.currentText, ecuSelect.currentIndex ,weight.currentText);
                     Connect.setOdometer(odometer.text);
                     Connect.setWeight(weight.text);
-                    Apexi.calculatorAux(an1V0.text,an2V5.text,an3V0.text,an4V5.text,unitaux1.text,unitaux2.text);
+                    Apexi.setAuxCalcData(
+                        aux1V0.text,
+                        aux1V5.text,
+                        aux2V0.text,
+                        aux2V5.text,
+                        aux3V0.text,
+                        aux3V5.text,
+                        unitaux1.text,
+                        unitaux2.text,
+                        unitaux3.text
+                    );
                     connected = 1;
+                    
+                    if (loggerswitch.checked == false) {
+                        // Star logging on connect
+                        loggerswitch.checked = true;
+                    }
                 }
             }
 
             //function to Disconnect
             Item {
-
                 id: functdisconnect
-                function disconnectfunc()
-                {
+                function disconnectfunc() {
                     Connect.closeConnection()
                     connected = 0;
+                    if (loggerswitch.checked == true) {
+                        // Stop logging on disconnect
+                        loggerswitch.checked = false;
+                    }
                 }
             }
 

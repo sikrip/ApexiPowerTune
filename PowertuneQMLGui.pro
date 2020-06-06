@@ -17,6 +17,7 @@ SOURCES += main.cpp \
     gps.cpp \
     sensors.cpp \
     datalogger.cpp \
+    ApexiFuelMap.cpp \
     Apexi.cpp \
     AdaptronicSelect.cpp \
     connect.cpp \
@@ -42,6 +43,7 @@ HEADERS += \
     gps.h \
     sensors.h \
     datalogger.h \
+    ApexuFuelMap.h \
     Apexi.h \
     AdaptronicSelect.h \
     connect.h \
