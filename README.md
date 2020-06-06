@@ -1,4 +1,16 @@
-# PowerTune
+# Apexi PowerTune
+
+A fork of PowerTune(https://github.com/BastianGschrey/PowerTune) focused in the Apexi PFC ecu with the following additions:
+
+* Supports both Gray(4 analog inputs) and Black(8 analog inputs) Datalogit versions
+* Closed loop fuel adjustement via Wideband (can be switched on/off)
+* Improved logging
+
+Known limitations:
+
+* Wideband must be connected to AN3-AN4 inputs of datalogit
+
+## PowerTune
 PowerTune is a Modern Gauge Display for written in QT5.8 and supports the following ECU's:
 
 
