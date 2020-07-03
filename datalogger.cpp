@@ -80,6 +80,7 @@ void datalogger::updateLog() {
                     << m_dashboard->injms() << "," // Not working
                     << m_dashboard->Dwell() << "," // Not working
                     << m_dashboard->Gear() << ","
+                    << m_dashboard->closedLoop() << ","
                     << endl;
                 break;
             case 0: ////Link ECU Generic CAN
@@ -211,6 +212,7 @@ void datalogger::createHeader() {
                 << "Inj ms" << ","
                 << "Dwell" << ","
                 << "Gear" << ","
+                << "ClosedLoop" << ","
                 << endl;
             break;
         case 0: ////Link ECU Generic CAN

@@ -422,6 +422,7 @@ class DashBoard : public QObject
 
     void setMapN(const int &mapN);
     void setMapP(const int &mapP);
+    void setClosedLoop(const QString &closedLoop);
 
 
 
@@ -800,6 +801,7 @@ class DashBoard : public QObject
 
     int mapN() const;
     int mapP() const;
+    QString closedLoop() const;
 
     //Boost
     qreal pim() const;
@@ -1531,6 +1533,9 @@ private:
     // Apexi map indices
     int m_MapN;
     int m_MapP;
+
+    // Closed loop status
+    QString m_closedLoop;
 
 
     //Boost

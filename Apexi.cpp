@@ -351,7 +351,8 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         m_apexiMsg.clear();
 
         if (isClosedLoopConditions() && handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
-            // Fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
+            // It is safe to write the fuel to the PFC and
+            // fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
 
             if (LOG_LEVEL >= LOGGING_INFO && getCurrentFuelMapWriteRequest() == 1) {
                 cout << "\nWriting fuel map..." << endl;
@@ -382,6 +383,9 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
     }
 }
 
+/**
+ * Decides if we are in closed loop(ie not wot/big load).
+ */
 bool Apexi::isClosedLoopConditions() {
     const int rpmIdx = packageMap[0]; // col MapN 0-based
     const int loadIdx = packageMap[1];// row MapP 0-based
@@ -409,16 +413,16 @@ void Apexi::updateAutoTuneLogs() {
     lastTpsVolt = tpsVolt;
 
     const bool shouldUpdateAfr =
-        // AFR value should be initialized
-        loggedAFR >= MIN_AFR && loggedAFR <= MAX_AFR &&
         // Update AFR only when the closed loop is enabled
         closedLoopEnabled &&
-        // Auto tune only when engine is warmed up
+        // AFR value should be initialized
+        loggedAFR >= MIN_AFR && loggedAFR <= MAX_AFR &&
+        // engine is warmed up
         waterTemp >= MIN_AUTOTUNE_WATER_TEMP &&
-        // Auto tune only the lower RPM/Load parts of the map
+        // we are on the lower RPM/Load parts of the map
         rpmIdx <= MAX_AUTOTUNE_RPM_IDX &&
         loadIdx <= MAX_AUTOTUNE_LOAD_IDX &&
-        // Auto tune only when the engine is actually started
+        // the engine is actually started
         rpm > MIN_AUTOTUNE_RPM &&
         // Do not auto tune on sudden throttle changes (do not mess with accel enrich etc)
         tpsChangeRate <= MAX_AUTOTUNE_TPS_CHANGE_RATE &&
@@ -431,6 +435,10 @@ void Apexi::updateAutoTuneLogs() {
     if (shouldUpdateAfr) {
         updateAFRData(rpmIdx, loadIdx, loggedAFR);
     }
+
+    // The dashboord is used as a bridge in order to log the
+    // closed loop status
+    m_dashboard->setClosedLoop(QString(shouldUpdateAfr ? "ON" : "OFF"));
 
     if (LOG_LEVEL >= LOGGING_INFO && (logSamplesCount % LOG_INTERVAL) == 0) {
         cout << lastLogTime.toString("hh:mm:ss.zzz").toStdString()
