@@ -27,14 +27,18 @@ static const int FUEL_TABLE_SIZE = 20;
 static const double MIN_AFR_DELTA = 0.15;
 
 /**
- * This is the max percentage change that a single fuel cell can change in on cycle.
+ * This is the max percentage change that a single fuel cell can change in one cycle.
  */
-static const double MAX_FUEL_PERCENTAGE_CHANGE = 0.2;
+static const double MAX_FUEL_PERCENTAGE_CHANGE = 0.3;
 
-static const double CELL_CHANGE_PERCENTAGE[9] =
-    { 0.02, 0.02, 0.02,
-      0.02, 0.84, 0.02,
-      0.02, 0.02, 0.02 };
+static const double TARGET_CELL_CHANGE_PERCENTAGE = 0.85
+/**
+ * Change the surrounding cells by this ratio.
+ * If X is the target cell, the cells marked as N will be changed:
+ * N N
+ * N X
+ */
+static const double NEIGHBOR_CELL_CHANGE_PERCENTAGE = 0.05;
 
 #include <sstream>
 
