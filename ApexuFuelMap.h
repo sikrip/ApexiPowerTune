@@ -31,7 +31,11 @@ static const double MIN_AFR_DELTA = 0.15;
  */
 static const double MAX_FUEL_PERCENTAGE_CHANGE = 0.3;
 
-static const double TARGET_CELL_CHANGE_PERCENTAGE = 0.85
+
+/**
+ * Change the target cell(the exact cell where the AFR was logged) by this ratio.
+ */
+static const double TARGET_CELL_CHANGE_PERCENTAGE = 0.85;
 /**
  * Change the surrounding cells by this ratio.
  * If X is the target cell, the cells marked as N will be changed:

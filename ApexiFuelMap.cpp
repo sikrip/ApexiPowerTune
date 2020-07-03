@@ -232,11 +232,13 @@ int calculateNewFuelMap() {
                         for (int wCol = max(0, col -1); wCol <= col; wCol++) {
                             const bool isTargetCell = wRow == row && wCol == col;
                             const double currentCellFuel = currentFuelMap[wRow][wCol];
-                            double cellDelta = isTargetCell ? (totalFuelDelta * TARGET_CELL_CHANGE_PERCENTAGE) : (totalFuelDelta * NEIGHBOR_CELL_CHANGE_PERCENTAGE);
+                            double cellDelta = isTargetCell ? (totalFuelDelta * TARGET_CELL_CHANGE_PERCENTAGE) :
+                                    (totalFuelDelta * NEIGHBOR_CELL_CHANGE_PERCENTAGE);
 
                             // Make sure that no huge changes are made in the fuel map at once
                             if (abs(cellDelta) / currentCellFuel > MAX_FUEL_PERCENTAGE_CHANGE) {
-                                cellDelta = (newFuel < currentCellFuel) ? -MAX_FUEL_PERCENTAGE_CHANGE * currentCellFuel : MAX_FUEL_PERCENTAGE_CHANGE * currentCellFuel;
+                                cellDelta = (newFuel < currentCellFuel) ? -MAX_FUEL_PERCENTAGE_CHANGE * currentCellFuel :
+                                        MAX_FUEL_PERCENTAGE_CHANGE * currentCellFuel;
                             }
 
                             if (isTargetCell) {
