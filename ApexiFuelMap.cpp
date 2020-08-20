@@ -221,7 +221,7 @@ int calculateNewFuelMap() {
                 const double loggedAvgAfr = loggedSumAfrMap[row][col] / loggedNumAfrMap[row][col];
                 if (abs(loggedAvgAfr - targetAFR) >= MIN_AFR_DELTA) {
                     const double newFuel = (loggedAvgAfr / targetAFR) * currentFuelMap[row][col];
-                    newFuelMap[wRow][wCol] = newFuel;
+                    newFuelMap[row][col] = newFuel;
                     cellsChanged++;
                 }
             }
