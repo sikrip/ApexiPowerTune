@@ -46,7 +46,7 @@ int fuelMapWriteAttemptInterval = 50;
  * be eligible to be sent to PFC.
  * TODO should be table
  */
-int minCellSamples = 10;
+int minCellSamples = 5;
 
 /**
  * This target AFR for each cell.
@@ -221,37 +221,8 @@ int calculateNewFuelMap() {
                 const double loggedAvgAfr = loggedSumAfrMap[row][col] / loggedNumAfrMap[row][col];
                 if (abs(loggedAvgAfr - targetAFR) >= MIN_AFR_DELTA) {
                     const double newFuel = (loggedAvgAfr / targetAFR) * currentFuelMap[row][col];
-                    const double totalFuelDelta = newFuel - currentFuelMap[row][col];
-
-                    /**
-                     * If X is the target cell, the cells marked as N will be changed as neighbor:
-                     * N N
-                     * N X
-                     */
-                    for (int wRow = max(0, row -1); wRow <= row; wRow++) {
-                        for (int wCol = max(0, col -1); wCol <= col; wCol++) {
-                            const bool isTargetCell = wRow == row && wCol == col;
-                            const double currentCellFuel = currentFuelMap[wRow][wCol];
-                            double cellDelta = isTargetCell ? (totalFuelDelta * TARGET_CELL_CHANGE_PERCENTAGE) :
-                                    (totalFuelDelta * NEIGHBOR_CELL_CHANGE_PERCENTAGE);
-
-                            // Make sure that no huge changes are made in the fuel map at once
-                            if (abs(cellDelta) / currentCellFuel > MAX_FUEL_PERCENTAGE_CHANGE) {
-                                cellDelta = (newFuel < currentCellFuel) ? -MAX_FUEL_PERCENTAGE_CHANGE * currentCellFuel :
-                                        MAX_FUEL_PERCENTAGE_CHANGE * currentCellFuel;
-                            }
-
-                            if (isTargetCell) {
-                                // exact fuel cell
-                                newFuelMap[wRow][wCol] = cellDelta + currentCellFuel;
-                                cellsChanged++;
-                            } else if (loggedNumAfrMap[wRow][wCol] < minCellSamples) {
-                                // cell not affected as target cell, so change is as neighbor
-                                newFuelMap[wRow][wCol] = cellDelta + currentCellFuel;
-                                cellsChanged++;
-                            }
-                        }
-                    }
+                    newFuelMap[wRow][wCol] = newFuel;
+                    cellsChanged++;
                 }
             }
         }
