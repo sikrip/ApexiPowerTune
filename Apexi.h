@@ -58,7 +58,7 @@ private:
 
     void sendPfcReadRequest();
 
-    bool isClosedLoopConditions();
+    bool isNotWOT();
 
     void updateAutoTuneLogs();
 

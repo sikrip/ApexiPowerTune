@@ -156,10 +156,9 @@ double add[] = FC_INFO_ADD;
  * Value 4 will write up to 4600rpm.
  */
 const int FUEL_MAP_MAX_WRITE_REQUESTS = 4;
-const int MAX_AUTOTUNE_RPM_IDX = 9; // ~4600 rpm
-const int MAX_AUTOTUNE_LOAD_IDX = 10; // ~7600 load
 const double MIN_AUTOTUNE_WATER_TEMP = 75;
 const double MIN_AUTOTUNE_RPM = 500;
+const double MAX_AUTOTUNE_RPM = 5000;
 const double MIN_TPS_VOLT = 0.56;
 const double MAX_TPS_VOLT = 4.024;
 const double MAX_AUTOTUNE_TPS_CHANGE_RATE = 4; // volt / second
@@ -350,7 +349,7 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         decodePfcData(m_apexiMsg);
         m_apexiMsg.clear();
 
-        if (isClosedLoopConditions() && handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
+        if (closedLoopEnabled && isNotWOT() && handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
             // It is safe to write the fuel to the PFC and
             // fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
 
@@ -384,17 +383,11 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
 }
 
 /**
- * Decides if we are in closed loop(ie not wot/big load).
+ * Decides if we are NOT in WOT conditions.
  */
-bool Apexi::isClosedLoopConditions() {
-    const int rpmIdx = packageMap[0]; // col MapN 0-based
-    const int loadIdx = packageMap[1];// row MapP 0-based
+bool Apexi::isNotWOT() {
     const double tpsVolt = (double) m_dashboard->ThrottleV();
-
-    return closedLoopEnabled &&
-           rpmIdx <= MAX_AUTOTUNE_RPM_IDX &&
-           loadIdx <= MAX_AUTOTUNE_LOAD_IDX &&
-           tpsVolt <= MAX_AUTOTUNE_TPS_VOLT;
+    return tpsVolt < MAX_AUTOTUNE_TPS_VOLT;
 }
 
 void Apexi::updateAutoTuneLogs() {
@@ -419,11 +412,9 @@ void Apexi::updateAutoTuneLogs() {
         loggedAFR >= MIN_AFR && loggedAFR <= MAX_AFR &&
         // engine is warmed up
         waterTemp >= MIN_AUTOTUNE_WATER_TEMP &&
-        // we are on the lower RPM/Load parts of the map
-        rpmIdx <= MAX_AUTOTUNE_RPM_IDX &&
-        loadIdx <= MAX_AUTOTUNE_LOAD_IDX &&
-        // the engine is actually started
+        // the engine is actually started and revving up to a certain RPM
         rpm > MIN_AUTOTUNE_RPM &&
+        rpm < MAX_AUTOTUNE_RPM &&
         // Do not auto tune on sudden throttle changes (do not mess with accel enrich etc)
         tpsChangeRate <= MAX_AUTOTUNE_TPS_CHANGE_RATE &&
         tpsChangeRate >= MIN_AUTOTUNE_TPS_CHANGE_RATE &&
