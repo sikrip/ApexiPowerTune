@@ -405,31 +405,43 @@ void Apexi::updateAutoTuneLogs() {
     lastLogTime = now;
     lastTpsVolt = tpsVolt;
 
-    const bool shouldUpdateAfr =
+    bool shouldUpdateAfr = true;
+    if (!closedLoopEnabled) {
         // Update AFR only when the closed loop is enabled
-        closedLoopEnabled &&
-        // AFR value should be initialized
-        loggedAFR >= MIN_AFR && loggedAFR <= MAX_AFR &&
-        // engine is warmed up
-        waterTemp >= MIN_AUTOTUNE_WATER_TEMP &&
-        // the engine is actually started and revving up to a certain RPM
-        rpm > MIN_AUTOTUNE_RPM &&
-        rpm < MAX_AUTOTUNE_RPM &&
+        m_dashboard->setClosedLoop("Off: Closed Loop Disabled");
+        shouldUpdateAfr = false;
+    } else if (loggedAFR < MIN_AFR || loggedAFR > MAX_AFR)){
+        // AFR value should be within some bounds
+        m_dashboard->setClosedLoop("Off: AFR out of bounds");
+        shouldUpdateAfr = false;
+    } else if (waterTemp < MIN_AUTOTUNE_WATER_TEMP) {
+        // Engine should be warmed up
+        m_dashboard->setClosedLoop("Off: Engine not warmed up");
+        shouldUpdateAfr = false;
+    } else if (rpm < MIN_AUTOTUNE_RPM || rpm > MAX_AUTOTUNE_RPM) {
+        // Engine is actually started and revving up to a certain RPM
+        m_dashboard->setClosedLoop("Off: RPM to low or to high");
+        shouldUpdateAfr = false;
+    } else if (tpsChangeRate > MAX_AUTOTUNE_TPS_CHANGE_RATE || tpsChangeRate < MIN_AUTOTUNE_TPS_CHANGE_RATE){
         // Do not auto tune on sudden throttle changes (do not mess with accel enrich etc)
-        tpsChangeRate <= MAX_AUTOTUNE_TPS_CHANGE_RATE &&
-        tpsChangeRate >= MIN_AUTOTUNE_TPS_CHANGE_RATE &&
+        m_dashboard->setClosedLoop("Off: Accel enrich or decel cut");
+        shouldUpdateAfr = false;
+    } else if(tpsVolt > MAX_AUTOTUNE_TPS_VOLT) {
         // Do not autotune near WOT
-        tpsVolt <= MAX_AUTOTUNE_TPS_VOLT &&
-        // Auto tune only when stationary or moving with the throttle pressed
-        (speed <= MIN_AUTOTUNE_SPEED || (speed > MIN_AUTOTUNE_SPEED && tpsVolt > MIN_TPS_VOLT));
+        m_dashboard->setClosedLoop("Off: WOT");
+        shouldUpdateAfr = false;
+    } else if (speed > MIN_AUTOTUNE_SPEED && tpsVolt <= MIN_TPS_VOLT))) {
+        // Do not autotune when moving without the throttle pressed
+        m_dashboard->setClosedLoop("Off: Moving with no throttle");
+        shouldUpdateAfr = false;
+    } else {
+        m_dashboard->setClosedLoop("Active");
+        shouldUpdateAfr = true;
+    }
 
     if (shouldUpdateAfr) {
         updateAFRData(rpmIdx, loadIdx, loggedAFR);
     }
-
-    // The dashboord is used as a bridge in order to log the
-    // closed loop status
-    m_dashboard->setClosedLoop(QString(shouldUpdateAfr ? "ON" : "OFF"));
 
     if (LOG_LEVEL >= LOGGING_INFO && (logSamplesCount % LOG_INTERVAL) == 0) {
         cout << lastLogTime.toString("hh:mm:ss.zzz").toStdString()
