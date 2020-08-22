@@ -410,7 +410,7 @@ void Apexi::updateAutoTuneLogs() {
         // Update AFR only when the closed loop is enabled
         m_dashboard->setClosedLoop("Off: Closed Loop Disabled");
         shouldUpdateAfr = false;
-    } else if (loggedAFR < MIN_AFR || loggedAFR > MAX_AFR)){
+    } else if (loggedAFR < MIN_AFR || loggedAFR > MAX_AFR) {
         // AFR value should be within some bounds
         m_dashboard->setClosedLoop("Off: AFR out of bounds");
         shouldUpdateAfr = false;
@@ -430,7 +430,7 @@ void Apexi::updateAutoTuneLogs() {
         // Do not autotune near WOT
         m_dashboard->setClosedLoop("Off: WOT");
         shouldUpdateAfr = false;
-    } else if (speed > MIN_AUTOTUNE_SPEED && tpsVolt <= MIN_TPS_VOLT))) {
+    } else if (speed > MIN_AUTOTUNE_SPEED && tpsVolt <= MIN_TPS_VOLT) {
         // Do not autotune when moving without the throttle pressed
         m_dashboard->setClosedLoop("Off: Moving with no throttle");
         shouldUpdateAfr = false;
