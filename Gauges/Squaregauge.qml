@@ -742,9 +742,9 @@ Rectangle {
             id: cbx_decimalplaces
             visible: false
             width: 94
-            model: ["0","1","2","3","N/A"]
+            model: ["0","1","2","3","4","5","N/A"]
             Component.onCompleted: {
-                    for(var i = 0; i < 5; ++i)
+                    for(var i = 0; i < 7; ++i)
                     if (cbx_decimalplaces.textAt(i) === decimalpoints.toString())
                     {
                         cbx_decimalplaces.currentIndex = i;
