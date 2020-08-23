@@ -11,6 +11,9 @@ class DashBoard : public QObject
     // Odometer
     Q_PROPERTY(qreal Odo READ Odo WRITE setOdo NOTIFY odoChanged)
 
+    // Closed Loops status
+    Q_PROPERTY(QString closedLoop READ closedLoop WRITE setClosedLoop NOTIFY closedLoopChanged)
+
     //Tripmeter
     Q_PROPERTY(qreal Trip READ Trip WRITE setTrip NOTIFY tripChanged)
     // Advanced Info
@@ -1129,6 +1132,8 @@ signals:
 
     //Odometer
     void odoChanged(qreal Odo);
+    // Closed Loop Status
+    void closedLoopChanged(QString closedLoop);
     //Tripmeter
     void tripChanged(qreal Trip);
     // Advanced Info

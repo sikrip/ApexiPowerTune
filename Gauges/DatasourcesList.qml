@@ -5,6 +5,15 @@ ListModel {
 
 
     ListElement {
+        sourcename:"closedLoop"
+        defaultsymbol: ""
+        titlename:"Closed Loop Status"
+        decimalpoints : "0"
+        maxvalue : "1"
+        stepsize : "1"
+        divisor : "1"
+    }
+    ListElement {
         titlename: "Analog0"
         defaultsymbol: "V"
         sourcename:"Analog0"

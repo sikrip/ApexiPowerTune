@@ -630,6 +630,9 @@ ListModel {
         sourcename:"Intakepress"
     }
     ListElement {
+        sourcename:"closedLoop"
+    }
+    ListElement {
         sourcename:"SensorString1"
     }
     ListElement {

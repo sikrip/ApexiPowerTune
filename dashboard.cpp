@@ -738,6 +738,7 @@ void DashBoard::setMapP(const int &mapP) {
 
 void DashBoard::setClosedLoop(const QString &closedLoop) {
     m_closedLoop = closedLoop;
+    emit closedLoopChanged(closedLoop);
 }
 
 
