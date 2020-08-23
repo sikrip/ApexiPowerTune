@@ -364,6 +364,9 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
             Apexi::writeRequestPFC(writePacket);
             //TODO should verify that the ack packet is actually received
             expectedbytes = 3; // ack packet (0xF2 0x02 0x0B) is expected
+
+            // Set closed loop status to 2 -> "Writing new map"
+            m_dashboard->setClosedLoop(2);
             m_timer.start(700);
         } else {
             // Decide the next request to be sent to PFC
@@ -408,34 +411,34 @@ void Apexi::updateAutoTuneLogs() {
     bool shouldUpdateAfr = true;
     if (!closedLoopEnabled) {
         // Update AFR only when the closed loop is enabled
-        m_dashboard->setClosedLoop("Off: Closed Loop Disabled");
+        m_dashboard->setClosedLoop(0); // "Off: Closed Loop Disabled");
         shouldUpdateAfr = false;
     } else if (loggedAFR < MIN_AFR || loggedAFR > MAX_AFR) {
         // AFR value should be within some bounds
-        m_dashboard->setClosedLoop("Off: AFR out of bounds");
+        m_dashboard->setClosedLoop(0); // "Off: AFR out of bounds");
         shouldUpdateAfr = false;
     } else if (waterTemp < MIN_AUTOTUNE_WATER_TEMP) {
         // Engine should be warmed up
-        m_dashboard->setClosedLoop("Off: Engine not warmed up");
+        m_dashboard->setClosedLoop(0); // "Off: Engine not warmed up");
         shouldUpdateAfr = false;
     } else if (rpm < MIN_AUTOTUNE_RPM || rpm > MAX_AUTOTUNE_RPM) {
         // Engine is actually started and revving up to a certain RPM
-        m_dashboard->setClosedLoop("Off: RPM to low or to high");
+        m_dashboard->setClosedLoop(0); // "Off: RPM to low or to high");
         shouldUpdateAfr = false;
     } else if (tpsChangeRate > MAX_AUTOTUNE_TPS_CHANGE_RATE || tpsChangeRate < MIN_AUTOTUNE_TPS_CHANGE_RATE){
         // Do not auto tune on sudden throttle changes (do not mess with accel enrich etc)
-        m_dashboard->setClosedLoop("Off: Accel enrich or decel cut");
+        m_dashboard->setClosedLoop(0); // "Off: Accel enrich or decel cut");
         shouldUpdateAfr = false;
     } else if(tpsVolt > MAX_AUTOTUNE_TPS_VOLT) {
         // Do not autotune near WOT
-        m_dashboard->setClosedLoop("Off: WOT");
+        m_dashboard->setClosedLoop(0); // "Off: WOT");
         shouldUpdateAfr = false;
     } else if (speed > MIN_AUTOTUNE_SPEED && tpsVolt <= MIN_TPS_VOLT) {
         // Do not autotune when moving without the throttle pressed
-        m_dashboard->setClosedLoop("Off: Moving with no throttle");
+        m_dashboard->setClosedLoop(0); // "Off: Moving with no throttle");
         shouldUpdateAfr = false;
     } else {
-        m_dashboard->setClosedLoop("Active");
+        m_dashboard->setClosedLoop(1); // "Active");
         shouldUpdateAfr = true;
     }
 

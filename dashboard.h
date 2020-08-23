@@ -12,7 +12,7 @@ class DashBoard : public QObject
     Q_PROPERTY(qreal Odo READ Odo WRITE setOdo NOTIFY odoChanged)
 
     // Closed Loops status
-    Q_PROPERTY(QString closedLoop READ closedLoop WRITE setClosedLoop NOTIFY closedLoopChanged)
+    Q_PROPERTY(qreal closedLoop READ closedLoop WRITE setClosedLoop NOTIFY closedLoopChanged)
 
     //Tripmeter
     Q_PROPERTY(qreal Trip READ Trip WRITE setTrip NOTIFY tripChanged)
@@ -425,7 +425,7 @@ class DashBoard : public QObject
 
     void setMapN(const int &mapN);
     void setMapP(const int &mapP);
-    void setClosedLoop(const QString &closedLoop);
+    void setClosedLoop(const qreal &closedLoop);
 
 
 
@@ -804,7 +804,7 @@ class DashBoard : public QObject
 
     int mapN() const;
     int mapP() const;
-    QString closedLoop() const;
+    qreal closedLoop() const;
 
     //Boost
     qreal pim() const;
@@ -1133,7 +1133,7 @@ signals:
     //Odometer
     void odoChanged(qreal Odo);
     // Closed Loop Status
-    void closedLoopChanged(QString closedLoop);
+    void closedLoopChanged(qreal closedLoop);
     //Tripmeter
     void tripChanged(qreal Trip);
     // Advanced Info
@@ -1540,7 +1540,7 @@ private:
     int m_MapP;
 
     // Closed loop status
-    QString m_closedLoop;
+    qreal m_closedLoop;
 
 
     //Boost

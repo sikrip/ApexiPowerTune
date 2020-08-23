@@ -736,7 +736,10 @@ void DashBoard::setMapP(const int &mapP) {
     m_MapP = mapP;
 }
 
-void DashBoard::setClosedLoop(const QString &closedLoop) {
+void DashBoard::setClosedLoop(const qreal &closedLoop) {
+    if (m_closedLoop == closedLoop) {
+        return;
+    }
     m_closedLoop = closedLoop;
     emit closedLoopChanged(closedLoop);
 }
@@ -2963,7 +2966,7 @@ qreal DashBoard::MAFactivity() const { return m_MAFactivity; }
 qreal DashBoard::O2volt_2() const { return m_O2volt_2; }
 int DashBoard::mapN() const { return m_MapN; }
 int DashBoard::mapP() const { return m_MapP; }
-QString DashBoard::closedLoop() const { return m_closedLoop; }
+qreal DashBoard::closedLoop() const { return m_closedLoop; }
 
 
 //Boost
