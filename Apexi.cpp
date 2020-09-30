@@ -156,7 +156,7 @@ double add[] = FC_INFO_ADD;
  * Value 4 will write up to 4600rpm.
  */
 const int FUEL_MAP_MAX_WRITE_REQUESTS = 4;
-const double MIN_AUTOTUNE_WATER_TEMP = 75;
+const double MIN_AUTOTUNE_WATER_TEMP = 65;
 const double MIN_AUTOTUNE_RPM = 500;
 const double MAX_AUTOTUNE_RPM = 5000;
 const double MIN_TPS_VOLT = 0.56;
