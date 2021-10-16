@@ -37,7 +37,7 @@ double loggedNumAfrMap[FUEL_TABLE_SIZE][FUEL_TABLE_SIZE];
 int fuelMapWriteRequest;
 
 /**
- * Attempt to re-calc and write the map after each this number of samples.
+ * Attempt to re-calc and write the map after this number of samples.
  */
 int fuelMapWriteAttemptInterval = 50;
 

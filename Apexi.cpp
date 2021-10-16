@@ -163,7 +163,7 @@ const double MIN_TPS_VOLT = 0.56;
 const double MAX_TPS_VOLT = 4.024;
 const double MAX_AUTOTUNE_TPS_CHANGE_RATE = 4; // volt / second
 const double MIN_AUTOTUNE_TPS_CHANGE_RATE = -4;
-const double MIN_AUTOTUNE_SPEED = 5; // km/h
+const double MAX_AUTOTUNE_SPEED = 2; // km/h
 const double MAX_AUTOTUNE_TPS_VOLT = 3.0;
 const double MAX_AFR = 19.8;
 const double MIN_AFR = 9.8;
@@ -433,9 +433,9 @@ void Apexi::updateAutoTuneLogs() {
         // Do not autotune near WOT
         m_dashboard->setClosedLoop(0); // "Off: WOT");
         shouldUpdateAfr = false;
-    } else if (speed > MIN_AUTOTUNE_SPEED && tpsVolt <= MIN_TPS_VOLT) {
-        // Do not autotune when moving without the throttle pressed
-        m_dashboard->setClosedLoop(0); // "Off: Moving with no throttle");
+    } else if (speed > MAX_AUTOTUNE_SPEED) {
+        // Do not autotune when moving.
+        m_dashboard->setClosedLoop(0); // "Off: Moving");
         shouldUpdateAfr = false;
     } else {
         m_dashboard->setClosedLoop(1); // "Active");
