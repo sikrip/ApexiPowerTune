@@ -151,23 +151,39 @@ double mul[80] = FC_INFO_MUL;  // required values for calculation from raw to re
 double add[] = FC_INFO_ADD;
 
 /**
+ * These two values depend on the TPS of the car and may need adjustemnet.
+ */
+const double MIN_TPS_VOLT = 0.56;
+const double MAX_TPS_VOLT = 4.024;
+
+/**
+ * These values depend on the installed wideband sensor.
+ */
+const double MAX_AFR = 19.8;
+const double MIN_AFR = 9.8;
+
+
+/**
  * Limits the number of write requests to the fuel map.
  * A value lower than 8 will not write the entire fuel map.
  * Value 4 will write up to 4600rpm.
  */
 const int FUEL_MAP_MAX_WRITE_REQUESTS = 4;
+
+/**
+ * The following values decide when autotune will be active.
+ */
 const double MIN_AUTOTUNE_WATER_TEMP = 65;
 const double MIN_AUTOTUNE_RPM = 500;
 const double MAX_AUTOTUNE_RPM = 5000;
-const double MIN_TPS_VOLT = 0.56;
-const double MAX_TPS_VOLT = 4.024;
 const double MAX_AUTOTUNE_TPS_CHANGE_RATE = 4; // volt / second
 const double MIN_AUTOTUNE_TPS_CHANGE_RATE = -4;
 const double MAX_AUTOTUNE_SPEED = 2; // km/h
 const double MAX_AUTOTUNE_TPS_VOLT = 3.0;
-const double MAX_AFR = 19.8;
-const double MIN_AFR = 9.8;
 
+/**
+ * The "master switch" of the autotune.
+ */
 bool closedLoopEnabled = false;
 
 // The last logged AFR value(-1 = uninitialized)
@@ -177,7 +193,8 @@ QTime lastLogTime = QTime::currentTime();
 
 // Used for logging messages in fixed intervals
 long logSamplesCount = 0;
-const int LOG_INTERVAL = 10;
+// Log every this number of samples
+const int LOG_SAMPLE_COUNT_INTERVAL = 10;
 
 Apexi::Apexi(QObject *parent)
         : QObject(parent), m_dashboard(Q_NULLPTR) {
@@ -211,7 +228,7 @@ void Apexi::clear() {
 //function to open serial port
 void Apexi::openConnection(const QString &portName) {
     cout << "Logging level:" << LOG_LEVEL << endl
-         << "Log Interval:" << LOG_INTERVAL << endl
+         << "Log Interval:" << LOG_SAMPLE_COUNT_INTERVAL << endl
          << "Closed Loop:" << (closedLoopEnabled ? "Yes" : "No") << endl;
     if (LOG_LEVEL >= LOGGING_INFO) {
         cout << "Opening connection\n";
@@ -446,7 +463,7 @@ void Apexi::updateAutoTuneLogs() {
         updateAFRData(rpmIdx, loadIdx, loggedAFR);
     }
 
-    if (LOG_LEVEL >= LOGGING_INFO && (logSamplesCount % LOG_INTERVAL) == 0) {
+    if (LOG_LEVEL >= LOGGING_INFO && (logSamplesCount % LOG_SAMPLE_COUNT_INTERVAL) == 0) {
         cout << lastLogTime.toString("hh:mm:ss.zzz").toStdString()
              << setprecision(3) << fixed
              << ", ClosedLoopEnabled:" << (closedLoopEnabled ? "Yes" : "No")

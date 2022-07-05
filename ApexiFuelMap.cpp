@@ -223,6 +223,10 @@ int calculateNewFuelMap() {
                     const double newFuel = (loggedAvgAfr / targetAFR) * currentFuelMap[row][col];
                     newFuelMap[row][col] = newFuel;
                     cellsChanged++;
+                    cout << "Changing fuel at row:" << row
+                         << " col:" << col
+                         << " from:" << currentFuelMap[row][col]
+                         << " to:" << newFuelMap[row][col] << endl;
                 }
             }
         }
