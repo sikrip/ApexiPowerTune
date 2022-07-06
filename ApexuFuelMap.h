@@ -12,6 +12,12 @@ static const int MAP_WRITE_PACKET_LENGTH = 103;
 static const int FUEL_MAP_TOTAL_REQUESTS = 8;
 
 /**
+ * Do not override the entire map with the initial map(leave the upper load/rpm parts untouched).
+ * A value of 4 will write up to ~4500rpm
+ */
+static const int INITIAL_FUEL_MAP_MAX_REQUESTS = 4;
+
+/**
  * The PFC fuel map is 20x20 rows.
  */
 static const int FUEL_CELLS_PER_REQUEST = 50;
@@ -38,6 +44,7 @@ using namespace std;
 void readFuelMap(int fuelRequestNumber, const char* rawData);
 char* createFuelMapWritePacket(int fuelRequestNumber, double (&map)[FUEL_TABLE_SIZE][FUEL_TABLE_SIZE]);
 char* getNextFuelMapWritePacket();
+char* getInitialFuelMapNextWritePacket();
 void updateAFRData(int rpmIdx, int loadIdx, double afr);
 bool handleNextFuelMapWriteRequest(int maxWriteRequests);
 

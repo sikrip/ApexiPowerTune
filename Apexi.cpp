@@ -366,7 +366,23 @@ void Apexi::decodeResponseAndSendNextRequest(const QByteArray &buffer) {
         decodePfcData(m_apexiMsg);
         m_apexiMsg.clear();
 
-        if (closedLoopEnabled && isNotWOT() && handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
+        /*
+         * In each iteration:
+         *
+         * - First we check if the initial fuel map is written to the PFC(should happen once at the start)
+         * - Then we check if the new fuel map(after auto-tuning) should be sent to PFC
+         * - Then the live data logging takes place
+         */
+        char* initialFuelMapWritePacket = getInitialFuelMapNextWritePacket();
+        if(closedLoopEnabled && initialFuelMapWritePacket != nullptr) {
+            QByteArray writePacket = QByteArray::fromRawData(initialFuelMapWritePacket, MAP_WRITE_PACKET_LENGTH);
+            if (LOG_LEVEL >= LOGGING_DEBUG) {
+                cout << "Sending map write packet: " << writePacket.toHex().toStdString() << endl;
+            }
+            Apexi::writeRequestPFC(writePacket);
+            //TODO should verify that the ack packet is actually received
+            expectedbytes = 3; // ack packet (0xF2 0x02 0x0B) is expected
+        } else if (closedLoopEnabled && isNotWOT() && handleNextFuelMapWriteRequest(FUEL_MAP_MAX_WRITE_REQUESTS)) {
             // It is safe to write the fuel to the PFC and
             // fuel map should be updated; live data acquisition will be stopped until the map is sent to PFC
 
