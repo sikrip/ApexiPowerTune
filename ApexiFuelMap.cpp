@@ -82,7 +82,7 @@ int fuelMapWriteAttemptInterval = 50;
  * be eligible to be sent to PFC.
  * TODO should be table
  */
-int minCellSamples = 20;
+int minCellSamples = 10;
 
 /**
  * This target AFR for each cell.
@@ -331,7 +331,7 @@ bool handleNextFuelMapWriteRequest(int maxWriteRequests) {
  */
 char* getInitialFuelMapNextWritePacket() {
     if (initialFuelMapWriteRequestNumber <= INITIAL_FUEL_MAP_MAX_REQUESTS) {
-        cout << "Sending request " << initialFuelMapWriteRequestNumber << " of initial fuel map.";
+        cout << "Sending request " << initialFuelMapWriteRequestNumber << " of initial fuel map." << endl;
         return createFuelMapWritePacket(++initialFuelMapWriteRequestNumber, initialFuelMap);
     }
     return nullptr;

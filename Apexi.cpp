@@ -151,7 +151,7 @@ double mul[80] = FC_INFO_MUL;  // required values for calculation from raw to re
 double add[] = FC_INFO_ADD;
 
 /**
- * These two values depend on the TPS of the car and may need adjustemnet.
+ * These two values depend on the TPS of the car and may need adjustment
  */
 const double MIN_TPS_VOLT = 0.56;
 const double MAX_TPS_VOLT = 4.024;
@@ -176,10 +176,10 @@ const int FUEL_MAP_MAX_WRITE_REQUESTS = 4;
 const double MIN_AUTOTUNE_WATER_TEMP = 65;
 const double MIN_AUTOTUNE_RPM = 500;
 const double MAX_AUTOTUNE_RPM = 5000;
+const double MIN_AUTOTUNE_TPS_CHANGE_RATE = -4; // volt / second
 const double MAX_AUTOTUNE_TPS_CHANGE_RATE = 4; // volt / second
-const double MIN_AUTOTUNE_TPS_CHANGE_RATE = -4;
-const double MAX_AUTOTUNE_SPEED = 2; // km/h
 const double MAX_AUTOTUNE_TPS_VOLT = 3.0;
+const double MAX_AUTOTUNE_SPEED = 200; // km/h
 
 /**
  * The "master switch" of the autotune.
