@@ -198,7 +198,7 @@ const int LOG_SAMPLE_COUNT_INTERVAL = 10;
 
 // Used to calculate and log the average value of aux3 (instead of logging each value)
 // This is done for 'erratic' readings ex. oil pressure
-double[10] aux3Values;
+double[10] aux3Values = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int aux3CalcIdx = 0;
 bool emitAux3Value = false;
 
