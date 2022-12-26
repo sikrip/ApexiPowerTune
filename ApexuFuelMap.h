@@ -46,5 +46,6 @@ double getNewFuel(int row, int col);
 int getCurrentFuelMapWriteRequest();
 
 void logFuelData(int printMapSize);
+void printCurrentFuelTable();
 
 #endif //HELLOCPP_APEXUFUELMAP_H

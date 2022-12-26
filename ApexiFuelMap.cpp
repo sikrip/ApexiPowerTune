@@ -313,6 +313,20 @@ int getCurrentFuelMapWriteRequest() {
     return fuelMapWriteRequest;
 }
 
+void printCurrentFuelTable() {
+    cout << "\n== Current Fuel table ==" << endl;
+    for(int r=0; r < FUEL_TABLE_SIZE; r++) {
+        for(int c=0; c < FUEL_TABLE_SIZE; c++) {
+            // 2 digits + 1 dot + 3 decimal places
+            cout << setw(6) << fixed << setprecision(3) << currentFuelMap[r][c];
+            if (c < FUEL_TABLE_SIZE-1) {
+                cout << " | ";
+            }
+        }
+        cout << endl;
+    }
+}
+
 void printLoggedAfrAvg(int printMapSize) {
     cout << "\n== Logged AFR avg ==" << endl;
     for(int r=0; r < printMapSize; r++) {
@@ -328,18 +342,20 @@ void printLoggedAfrAvg(int printMapSize) {
     }
 }
 
+void printFuelAndDelta(double fuel, double delta) {
+    cout << setw(6) << fixed << setprecision(3) << fuel << "(";
+    if (delta !=0) {
+        cout << setw(6) << fixed << setprecision(3) << delta << ")";
+    } else {
+        cout << setw(6) << "" << ")";
+    }
+}
+
 void printNewFuelTable(int printMapSize) {
     cout << "\n== New Fuel table ==" << endl;
     for(int r=0; r < printMapSize; r++) {
         for(int c=0; c < printMapSize; c++) {
-            const double fuelDelta = newFuelMap[r][c] - currentFuelMap[r][c];
-            cout << setw(4) << fixed << setprecision(1) << newFuelMap[r][c]
-                 << "(";
-            if (fuelDelta !=0) {
-                cout << setprecision(2) << fuelDelta << ")";
-            } else {
-                cout << setw(4) << "-" << ")";
-            }
+            printFuelAndDelta(newFuelMap[r][c], newFuelMap[r][c] - currentFuelMap[r][c]);
             if (c < printMapSize-1) {
                 cout << " | ";
             }
