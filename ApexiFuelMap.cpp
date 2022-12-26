@@ -65,7 +65,7 @@ int minCellsChangesForWriteAttempt = 1;
 int mapWriteCount = 0;
 
 /**
- * Calculates the row of fuel map based on the provided fuel request number (1-FUEL_MAP_TOTAL_REQUESTS).
+ * Calculates the row of fuel map based on the provided fuel request number (1 to FUEL_MAP_TOTAL_REQUESTS).
  *
  * @param fuelRequestNumber the fuel request number (1..FUEL_MAP_TOTAL_REQUESTS)
  * @return the fuel map row corresponding to the provided request
