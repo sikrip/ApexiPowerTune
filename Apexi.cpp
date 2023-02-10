@@ -196,12 +196,6 @@ long logSamplesCount = 0;
 // Log every this number of samples
 const int LOG_SAMPLE_COUNT_INTERVAL = 10;
 
-// Used to calculate and log the average value of aux3 (instead of logging each value)
-// This is done for 'erratic' readings ex. oil pressure
-double aux3Values[10];
-int aux3CalcIdx = 0;
-bool emitAux3Value = false;
-
 Apexi::Apexi(QObject *parent)
         : QObject(parent), m_dashboard(Q_NULLPTR) {
 }
@@ -870,20 +864,7 @@ void Apexi::decodeAuxBlack(QByteArray rawmessagedata) {
 
     m_dashboard->setauxcalc1(auxCalc1);
     m_dashboard->setauxcalc2(auxCalc2);
-
-    if (aux3CalcIdx == 9) {
-        emitAux3Value = true;
-    }
-    aux3Values[aux3CalcIdx] = auxCalc3;
-    aux3CalcIdx = (aux3CalcIdx + 1) % 10;
-    if (emitAux3Value) {
-        double sum = 0;
-        for (int i=0; i<10; i++) {
-            sum += aux3Values[i];
-        }
-        m_dashboard->setauxcalc3(sum / 10.0);
-    }
-
+    m_dashboard->setauxcalc3(auxCalc3);
     m_dashboard->setauxcalc4(auxCalc4);
 
     if (LOG_LEVEL >= LOGGING_DEBUG) {
