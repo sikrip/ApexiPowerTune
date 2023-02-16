@@ -12,7 +12,8 @@ static const int MAP_WRITE_PACKET_LENGTH = 103;
 static const int FUEL_MAP_TOTAL_REQUESTS = 8;
 
 /**
- * The PFC fuel map is 20x20 rows.
+ * The PFC fuel map has 400 values (20x20). In order to white/read the entire map 8 requests
+ * are needed. So each request has 50 values.
  */
 static const int FUEL_CELLS_PER_REQUEST = 50;
 
