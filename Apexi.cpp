@@ -469,7 +469,7 @@ void Apexi::updateAutoTuneLogs() {
         updateAFRData(rpmIdx, loadIdx, loggedAFR);
     }
 
-    if (LOG_LEVEL >= LOGGING_INFO && (logSamplesCount % LOG_SAMPLE_COUNT_INTERVAL) == 0) {
+    if (LOG_LEVEL >= LOGGING_DEBUG && (logSamplesCount % LOG_SAMPLE_COUNT_INTERVAL) == 0) {
         cout << lastLogTime.toString("hh:mm:ss.zzz").toStdString()
              << setprecision(3) << fixed
              << ", ClosedLoopEnabled:" << (closedLoopEnabled ? "Yes" : "No")
