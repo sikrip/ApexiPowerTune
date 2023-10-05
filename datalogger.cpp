@@ -46,7 +46,7 @@ void datalogger::updateLog() {
     } else {
         // Not logging, check if we need to start logging after engine is started
         if (m_dashboard->rpm() >= minLoggingRPM) {
-            const QString logFileName = QDate::currentDate().toString("log_dd.MM.yyyy") +
+            const QString logFileName = QDate::currentDate().toString("log_yyyy.MM.dd") +
                     QTime::currentTime().toString("_hh.mm.ss") +
                     ".csv";
             logFile.setFileName(logFileName);
