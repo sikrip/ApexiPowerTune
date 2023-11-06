@@ -74,8 +74,8 @@ void datalogger::updateLog() {
                     << m_dashboard->auxcalc3() << "," // Oil Press
                     << m_dashboard->auxcalc1() << "," // Oil Temp
                     << m_dashboard->auxcalc2() << "," // Wideband
-                    << (m_dashboard->mapP() + 1) << "," // Map N, Map P is zero based
-                    << (m_dashboard->mapN() + 1) << ","  // but in FCEdit start from 1
+                    << m_dashboard->mapP() << ","
+                    << m_dashboard->mapN() << ","
                     << m_dashboard->ThrottleV() << ","
                     << m_dashboard->injms() << "," // Not working
                     << m_dashboard->Dwell() << "," // Not working
