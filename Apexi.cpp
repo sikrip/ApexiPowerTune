@@ -175,16 +175,16 @@ const int FUEL_MAP_MAX_WRITE_REQUESTS = 1;
  */
 const double MIN_AUTOTUNE_WATER_TEMP = 65;
 const double MIN_AUTOTUNE_RPM = 500;
-const double MAX_AUTOTUNE_RPM = 1100;
+const double MAX_AUTOTUNE_RPM = 4000;
 const double MAX_AUTOTUNE_TPS_CHANGE_RATE = 4; // volt / second
 const double MIN_AUTOTUNE_TPS_CHANGE_RATE = -4;
 const double MAX_AUTOTUNE_SPEED = 2; // km/h
-const double MAX_AUTOTUNE_TPS_VOLT = 0.6;
+const double MAX_AUTOTUNE_TPS_VOLT = 2.0;
 
 /**
  * The "master switch" of the autotune.
  */
-bool closedLoopEnabled = false;
+bool closedLoopEnabled = true;
 
 // The last logged AFR value(-1 = uninitialized)
 double loggedAFR = -1;
