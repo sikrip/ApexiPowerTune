@@ -168,7 +168,7 @@ const double MIN_AFR = 9.8;
  * A value lower than 8 will not write the entire fuel map.
  * Value 1 will write the first 50 values, ie first two coloums and the half of the third column.
  */
-const int FUEL_MAP_MAX_WRITE_REQUESTS = 1;
+const int FUEL_MAP_MAX_WRITE_REQUESTS = 5;
 
 /**
  * The following values decide when autotune will be active.
